@@ -1,0 +1,35 @@
+build:
+  enabled: false
+codeql:
+  timeout: 3600
+crawl:
+  base_url: http://localhost:8080/
+  max_duration_sec: 600
+  max_pages: 10
+  zap_hybrid:
+    client_max_duration_sec: 0
+meta:
+  cve: CVE-2024-29191
+serve:
+  docker:
+    context: docker/apps/go2rtc
+    init_wait_sec: 60
+    needs_mysql: false
+    extra_ports:
+      - "8554:8554"
+      - "8554:8554/udp"
+      - "8555:8555"
+      - "8555:8555/udp"
+      - "1935:1935"
+      - "8443:8443/udp"
+    volumes:
+      - "{docker_context}/go2rtc.yaml:/config/go2rtc.yaml:ro"
+    proxy_flags:
+      - "--mock-homekit"
+  port: 8080
+  type: docker
+target:
+  commit: v1.8.5
+  framework: vanilla
+  name: go2rtc
+  repo: https://github.com/AlexxIT/go2rtc.git

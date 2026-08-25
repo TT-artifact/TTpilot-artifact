@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Finding #{{ finding.id }}{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+  <h1 style="font-size: 1.1em; margin: 0;">Finding #{{ finding.id }}</h1>
+  <a href="/findings/{{ finding.id }}" style="color: #2980b9; text-decoration: none; font-size: 0.8em;">← Back</a>
+</div>
+
+<section style="margin-bottom: 24px; background: #fafbfc; padding: 16px; border-radius: 6px; border: 1px solid #e5e7eb;">
+  <h3 style="font-size: 0.85em; margin-bottom: 12px; margin-top: 0;">Metadata</h3>
+
+  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin-bottom: 16px; font-size: 0.9em;">
+    <div>
+      <div style="font-size: 0.75em; color: #9ca3af; text-transform: uppercase; font-weight: 600; margin-bottom: 4px;">App</div>
+      <a href="/sinks/{{ finding.app }}" style="color: #2980b9; text-decoration: none; word-break: break-all;">{{ finding.app }}</a>
+    </div>
+    <div>
+      <div style="font-size: 0.75em; color: #9ca3af; text-transform: uppercase; font-weight: 600; margin-bottom: 4px;">Sink Type</div>
+      <div>{{ finding.sink_type }}</div>
+    </div>
+    <div>
+      <div style="font-size: 0.75em; color: #9ca3af; text-transform: uppercase; font-weight: 600; margin-bottom: 4px;">Kind</div>
+      <div>
+        {{ finding.kind }}
+        {% if finding.alt_kinds %}
+          {% set alt = finding.alt_kinds | fromjson %}
+          <div style="margin-top:6px;font-size:0.8em;color:#92400e;background:#fef3c7;padding:6px 8px;border-radius:4px;border:1px solid #fde68a;">
+            Receiver unresolvable — also matches:
+            {% for k in alt %}<code>{{ k }}</code>{% if not loop.last %}, {% endif %}{% endfor %}<br>
+            The refactoring suggestion is based on the most severe sink type ({{ finding.sink_type }}).
+          </div>
+        {% endif %}
+      </div>
+    </div>
+    <div>
+      <div style="font-size: 0.75em; color: #9ca3af; text-transform: uppercase; font-weight: 600; margin-bottom: 4px;">Status</div>
+      <div>{{ finding.status }}</div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: auto 1fr; gap: 24px; margin-bottom: 16px; align-items: start;">
+    <div style="font-size: 0.9em;">
+      <div style="font-size: 0.75em; color: #9ca3af; text-transform: uppercase; font-weight: 600; margin-bottom: 4px;">Verdict</div>
+      <span class="badge badge-{{ finding.verdict }}" style="font-size: 0.85em;">{{ finding.verdict }}</span>
+    </div>
+    {% if finding.verdict_reasons_parsed %}
+    <div style="font-size: 0.9em;">
+      <div style="font-size: 0.75em; color: #9ca3af; text-transform: uppercase; font-weight: 600; margin-bottom: 4px;">Why</div>
+      <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+        {% for reason in finding.verdict_reasons_parsed %}
+        <span style="background: #f3f4f6; padding: 3px 8px; border-radius: 3px; font-size: 0.8em;">{{ reason }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div style="font-size: 0.9em;">
+    <div style="font-size: 0.75em; color: #9ca3af; text-transform: uppercase; font-weight: 600; margin-bottom: 4px;">Location</div>
+    <a href="/raw?finding_id={{ finding.id }}&app={{ finding.app }}" target="_blank" style="color: #2980b9; text-decoration: none;">
+      <code style="font-size: 0.85em;">{{ finding.file }}:{{ finding.line }}:{{ finding.col }}</code>
+    </a>
+  </div>
+</section>
+
+{% if finding.arg_value %}
+<section style="margin-bottom: 24px; background: #f0fdf4; padding: 16px; border-radius: 6px; border: 1px solid #bbf7d0;">
+  <h3 style="font-size: 0.85em; margin-bottom: 8px; margin-top: 0; color: #166534;">Argument Value</h3>
+  <div style="font-size: 0.9em;">
+    <code style="background: white; padding: 3px 8px; border-radius: 2px; white-space: pre-wrap; word-break: break-all; display: inline-block; border: 1px solid #bbf7d0;">{{ finding.arg_value }}</code>
+  </div>
+</section>
+{% endif %}
+
+<section style="margin-bottom: 24px; background: #fef3f2; padding: 16px; border-radius: 6px; border: 1px solid #fecdd3;">
+  <h3 style="font-size: 0.85em; margin-top: 0;">Code</h3>
+  {% if finding.refactor_suggestion %}
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+    <div style="min-width: 0;">
+      <div style="font-size: 0.75em; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px;">Original</div>
+      <pre style="background: #f8f9fa; padding: 12px 14px; border-radius: 4px; overflow-x: auto; border: 1px solid #e5e7eb; margin: 0; font-size: 0.75em; white-space: pre-wrap; word-break: break-all; line-height: 1.4;"><code>{{ finding.original_snippet }}</code></pre>
+    </div>
+    <div style="min-width: 0;">
+      <div style="font-size: 0.75em; font-weight: 600; color: #166534; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px;">Refactored <span style="color: #6b7280; font-weight: 400; text-transform: none;">(ttPolicy)</span></div>
+      <pre style="background: #f0fdf4; padding: 12px 14px; border-radius: 4px; overflow-x: auto; border: 1px solid #bbf7d0; margin: 0; color: #166534; font-size: 0.75em; white-space: pre-wrap; word-break: break-all; line-height: 1.4;"><code>{{ finding.display_suggestion or finding.refactor_suggestion }}</code></pre>
+    </div>
+  </div>
+  {% else %}
+  <pre style="background: #f8f9fa; padding: 12px 14px; border-radius: 4px; overflow-x: auto; font-size: 0.8em;"><code>{{ finding.original_snippet }}</code></pre>
+  {% endif %}
+</section>
+
+{% if finding.html_tags_parsed %}
+<section style="margin-bottom: 24px;">
+  <h3 style="font-size: 0.85em;">HTML Tags ({{ finding.html_tags_parsed|length }} found)</h3>
+  <table style="width: 100%; border-collapse: collapse; font-size: 0.8em;">
+    <thead>
+      <tr style="border-bottom: 2px solid #ccc;">
+        <th style="text-align: left; padding: 8px;">Tag</th>
+        <th style="text-align: left; padding: 8px;">Attributes</th>
+        <th style="text-align: left; padding: 8px;">Content</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for tag in finding.html_tags_parsed %}
+      <tr style="border-bottom: 1px solid #eee;">
+        <td style="padding: 8px;"><code style="font-size: 0.85em;">{{ tag.tag }}</code></td>
+        <td style="padding: 8px;">
+          {% if tag.attributes %}
+          <code style="font-size: 0.75em;">{{ tag.attributes|join(', ') }}</code>
+          {% else %}
+          —
+          {% endif %}
+        </td>
+        <td style="padding: 8px;">
+          {% if tag.content %}
+          <code style="font-size: 0.75em;">{{ tag.content|truncate(60) }}</code>
+          {% else %}
+          —
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+<section style="margin-top: 24px; padding-top: 24px; border-top: 2px solid #ccc; font-size: 0.9em;">
+  <a href="/sinks/{{ finding.app }}" style="color: #2980b9; text-decoration: none;">
+    ← Back to {{ finding.app }}
+  </a>
+</section>
+{% endblock %}

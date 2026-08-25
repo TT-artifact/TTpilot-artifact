@@ -1,0 +1,42 @@
+build:
+  enabled: false
+codeql:
+  timeout: 3600
+crawl:
+  base_url: http://localhost:8080/
+  seed_urls:
+    - http://localhost:8080/umbraco/
+  max_duration_sec: 600
+  max_pages: 50
+  zap_hybrid:
+    client_max_duration_sec: 0
+  auth:
+    enabled: true
+    type: form
+    credentials:
+      # Test credentials from Dockerfile - not production
+      # Note: login_url is SPA entry point (/umbraco/), not /umbraco/login
+      # AngularJS router handles #/login hash-based navigation
+      # NOTE: UsernameIsEmail=true in Umbraco, so username must be email address
+      login_url: http://localhost:8080/umbraco/
+      username: admin@example.com
+      password: adminpassword1!
+meta:
+  cve: CVE-2023-48313
+  uses_jquery: true
+serve:
+  docker:
+    context: docker/apps/umbraco
+    # First-boot unattended install (SQLite create + EF Core migrations +
+    # admin user) consistently takes > 2 min on this host.
+    # wait_for_app_ready.py computes max_wait = max(60, init_wait_sec * 4),
+    # so 75 → 300 s ceiling, giving comfortable headroom.
+    init_wait_sec: 75
+    needs_mysql: false
+  port: 8080
+  type: docker
+target:
+  commit: release-12.3.0
+  framework: vanilla
+  name: umbraco
+  repo: https://github.com/umbraco/Umbraco-CMS.git

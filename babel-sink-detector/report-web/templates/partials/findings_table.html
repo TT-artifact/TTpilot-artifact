@@ -1,0 +1,105 @@
+{% for finding in findings %}
+<tr {% if expand_mode %}onclick="toggleExpand(this)"{% else %}onclick="window.location.href='/findings/{{ finding.id }}'"{% endif %} style="cursor:pointer;">
+  {% if app is string %}<td style="text-align: center;"><input type="checkbox" data-finding-id="{{ finding.id }}" {% if finding.status in ['RECEIVER_MATCH', 'NO_RECEIVER'] %}checked{% endif %} style="cursor: pointer;"></td>{% endif %}
+  {% if app is not string %}<td><strong>{{ finding.app }}</strong></td>{% endif %}
+  <td style="font-size: 0.85em; color: #666;">{{ finding.id }}</td>
+  <td style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><code style="font-size: 0.75em; background: #f3f4f6; padding: 2px 4px; border-radius: 2px;">{{ finding.sink_key }}</code></td>
+  <td><code style="font-size: 0.8em; background: #f3f4f6; padding: 2px 4px; border-radius: 2px;">{{ finding.sink_type }}</code></td>
+  <td>
+    {{ finding.kind }}
+    {% if finding.alt_kinds %}
+      {% set alt = finding.alt_kinds | fromjson %}
+      (also: {{ alt | join(', ') }})
+    {% endif %}
+  </td>
+  <td>{{ finding.status }}</td>
+  <td style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><code style="font-size: 0.8em;">{{ finding.file | short_path }}:{{ finding.line }}</code></td>
+  <td class="snippet">{{ (finding.original_snippet or '') | truncate(120) }}</td>
+  <td style="white-space: nowrap;"><span class="badge badge-{{ finding.verdict }}">{{ finding.verdict }}</span></td>
+</tr>
+{% set colspan = table_colspan if table_colspan is defined else 9 %}
+<tr class="expand-row" style="display: none;" data-finding-id="{{ finding.id }}" data-app="{{ finding.app if app is not string else app }}"><td colspan="{{ colspan }}"></td></tr>
+{% endfor %}
+{% if total > per_page %}
+{% set colspan = table_colspan if table_colspan is defined else 7 %}
+<tr style="border-top: 2px solid #ccc;">
+  <td colspan="{{ colspan }}" style="padding: 12px 8px; font-size: 0.9em;">
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px;">
+      <div style="flex: 1; text-align: center; min-width: 0; overflow: hidden;">
+      {% set total_pages = (total + per_page - 1) // per_page %}
+      {% set start_page = [1, page - 2] | max %}
+      {% set end_page = [total_pages, page + 2] | min %}
+
+      {% if page > 1 %}
+      {% if app %}
+      <a class="pagination-link" hx-get="/sinks/{{ app }}/findings?page={{ page - 1 }}"
+         hx-target="#findings-tbody"
+         hx-include="#filter-form" style="margin-right: 8px;">← Previous</a>
+      {% else %}
+      <a class="pagination-link" hx-get="/findings?page={{ page - 1 }}"
+         hx-target="#findings-tbody"
+         hx-include="#filter-form" style="margin-right: 8px;">← Previous</a>
+      {% endif %}
+      {% endif %}
+
+      {% if start_page > 1 %}
+      {% if app %}
+      <a class="pagination-link" hx-get="/sinks/{{ app }}/findings?page=1"
+         hx-target="#findings-tbody"
+         hx-include="#filter-form" style="margin-right: 4px;">1</a>
+      {% else %}
+      <a class="pagination-link" hx-get="/findings?page=1"
+         hx-target="#findings-tbody"
+         hx-include="#filter-form" style="margin-right: 4px;">1</a>
+      {% endif %}
+      <span style="margin-right: 4px;">...</span>
+      {% endif %}
+
+      {% for p in range(start_page, end_page + 1) %}
+        {% if p == page %}
+        <span style="font-weight: 600; margin: 0 2px; padding: 2px 6px; background: #2980b9; color: white; border-radius: 3px;">{{ p }}</span>
+        {% else %}
+        {% if app %}
+        <a class="pagination-link" hx-get="/sinks/{{ app }}/findings?page={{ p }}"
+           hx-target="#findings-tbody"
+           hx-include="#filter-form" style="margin: 0 2px;">{{ p }}</a>
+        {% else %}
+        <a class="pagination-link" hx-get="/findings?page={{ p }}"
+           hx-target="#findings-tbody"
+           hx-include="#filter-form" style="margin: 0 2px;">{{ p }}</a>
+        {% endif %}
+        {% endif %}
+      {% endfor %}
+
+      {% if end_page < total_pages %}
+      <span style="margin-left: 4px;">...</span>
+      {% if app %}
+      <a class="pagination-link" hx-get="/sinks/{{ app }}/findings?page={{ total_pages }}"
+         hx-target="#findings-tbody"
+         hx-include="#filter-form" style="margin-left: 4px;">{{ total_pages }}</a>
+      {% else %}
+      <a class="pagination-link" hx-get="/findings?page={{ total_pages }}"
+         hx-target="#findings-tbody"
+         hx-include="#filter-form" style="margin-left: 4px;">{{ total_pages }}</a>
+      {% endif %}
+      {% endif %}
+
+      {% if page * per_page < total %}
+      {% if app %}
+      <a class="pagination-link" hx-get="/sinks/{{ app }}/findings?page={{ page + 1 }}"
+         hx-target="#findings-tbody"
+         hx-include="#filter-form" style="margin-left: 8px;">Next →</a>
+      {% else %}
+      <a class="pagination-link" hx-get="/findings?page={{ page + 1 }}"
+         hx-target="#findings-tbody"
+         hx-include="#filter-form" style="margin-left: 8px;">Next →</a>
+      {% endif %}
+      {% endif %}
+      </div>
+      <div style="font-size: 0.75em; color: #7f8c8d; white-space: nowrap; flex-shrink: 0;">
+        Showing {{ (page - 1) * per_page + 1 }}-{{ [page * per_page, total] | min }} of {{ total }} {% if app %}sinks{% else %}findings{% endif %}
+      </div>
+    </div>
+  </td>
+</tr>
+{% endif %}

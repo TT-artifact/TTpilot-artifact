@@ -1,0 +1,10 @@
+[mysqld]
+character-set-server = utf8mb4
+collation-server = utf8mb4_unicode_ci
+sql_mode = NO_ENGINE_SUBSTITUTION
+innodb_file_per_table = ON
+# Legacy settings Cacti's installer checks for; harmless no-ops on modern
+# MariaDB where large/dynamic row format is already the default, and "loose-"
+# keeps boot from failing if the variable no longer exists.
+loose-innodb_file_format = Barracuda
+loose-innodb_large_prefix = 1

@@ -1,0 +1,102 @@
+<div id="report-table-container">
+  <table class="findings-table">
+    <thead>
+      <tr>
+        <th style="width: 50px;"></th>
+        <th style="width: 200px;">Sink Key</th>
+        <th style="width: 80px;">TT Type</th>
+        <th style="width: 150px;">Sink Kind</th>
+        <th style="width: 100px;">Verdict</th>
+        <th style="text-align: right; width: 60px;">Count</th>
+        <th style="text-align: right; width: 160px;">Latest Received</th>
+        <th style="width: 100px;">Oracle</th>
+      </tr>
+    </thead>
+    <tbody id="report-tbody">
+      {% for row in rows %}
+      <tr class="sink-group-row" style="cursor: pointer;" onclick="toggleSinkGroup(this)">
+        <td style="text-align: center; padding: 8px; width: 50px;"><span class="expand-indicator" style="display: inline-block; width: 8px; text-align: center;">▶</span></td>
+        <td style="font-family: monospace; font-size: 0.85em; width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ row.get('sink_key') or '(none)' }}">{{ row.get('sink_key') or '(none)' }}</td>
+        <td style="width: 80px;">{{ row.get('tt_type', '') }}</td>
+        <td style="width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ row.get('sink_kind') or '(none)' }}</td>
+        <td style="width: 100px;">
+          {% if row.get('verdicts') %}
+            {% set verdict_list = row.get('verdicts', '').split(',') %}
+            {% for v in verdict_list %}
+              <span class="badge badge-{{ v.strip() }}" style="font-size: 10px; margin-right: 2px;">{{ v.strip() }}</span>
+            {% endfor %}
+          {% else %}
+            <span class="badge badge-NEW" style="font-size: 10px;">NEW</span>
+          {% endif %}
+        </td>
+        <td style="text-align: right; width: 60px;">{{ row.get('total_count', 0) }}</td>
+        <td style="text-align: right; width: 160px;">{{ row.get('latest_received') | format_timestamp }}</td>
+        <td style="width: 100px;">
+          {% if row.get('oracle_verdict') %}
+            <span class="badge badge-{{ row.get('oracle_verdict') }}" style="font-size: 10px;">{{ row.get('oracle_verdict') }}</span>
+          {% else %}
+            <span style="color: #ccc; font-size: 10px;">—</span>
+          {% endif %}
+        </td>
+      </tr>
+      <tr class="sink-details-row" style="display: none;" data-sink-key="{{ row.get('sink_key') if row.get('sink_key') is not none else '__NULL__' }}" data-table="{{ table }}">
+        <td colspan="8" style="padding: 0;">
+          <div style="background: #f9f9f9; padding: 16px; border-left: 3px solid #e0e0e0;">
+            <div style="font-size: 0.9em; color: #666; margin-bottom: 12px;">Loading details...</div>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <tr style="border-top: 2px solid #ccc;">
+    <td colspan="8" style="padding: 12px 8px; font-size: 0.9em;">
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px;">
+        <div style="flex: 1; text-align: center; min-width: 0; overflow: hidden;">
+        {% set start_page = [1, page - 2] | max %}
+        {% set end_page = [total_pages, page + 2] | min %}
+
+        {% if page > 1 %}
+        <a class="pagination-link" hx-get="/reports/{{ app }}/data?table={{ table }}&page={{ page - 1 }}"
+           hx-target="#report-table-container"
+           hx-include="#report-filter-form" style="margin-right: 8px;">← Previous</a>
+        {% endif %}
+
+        {% if start_page > 1 %}
+        <a class="pagination-link" hx-get="/reports/{{ app }}/data?table={{ table }}&page=1"
+           hx-target="#report-table-container"
+           hx-include="#report-filter-form" style="margin-right: 4px;">1</a>
+        <span style="margin-right: 4px;">...</span>
+        {% endif %}
+
+        {% for p in range(start_page, end_page + 1) %}
+          {% if p == page %}
+          <span style="font-weight: 600; margin: 0 2px; padding: 2px 6px; background: #2980b9; color: white; border-radius: 3px;">{{ p }}</span>
+          {% else %}
+          <a class="pagination-link" hx-get="/reports/{{ app }}/data?table={{ table }}&page={{ p }}"
+             hx-target="#report-table-container"
+             hx-include="#report-filter-form" style="margin: 0 2px;">{{ p }}</a>
+          {% endif %}
+        {% endfor %}
+
+        {% if end_page < total_pages %}
+        <span style="margin-left: 4px;">...</span>
+        <a class="pagination-link" hx-get="/reports/{{ app }}/data?table={{ table }}&page={{ total_pages }}"
+           hx-target="#report-table-container"
+           hx-include="#report-filter-form" style="margin-left: 4px;">{{ total_pages }}</a>
+        {% endif %}
+
+        {% if page < total_pages %}
+        <a class="pagination-link" hx-get="/reports/{{ app }}/data?table={{ table }}&page={{ page + 1 }}"
+           hx-target="#report-table-container"
+           hx-include="#report-filter-form" style="margin-left: 8px;">Next →</a>
+        {% endif %}
+        </div>
+        <div style="font-size: 0.75em; color: #7f8c8d; white-space: nowrap; flex-shrink: 0;">
+          Showing {{ (page - 1) * per_page + 1 }}-{{ [page * per_page, total_count] | min }} of {{ total_count }} reports
+        </div>
+      </div>
+    </td>
+  </tr>
+</div>

@@ -1,0 +1,22 @@
+{
+  "name": "@tt-auto/babel-sink-detector",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Babel AST-based DOM XSS sink detector (no CodeQL required)",
+  "bin": {
+    "tt-detect-sinks": "src/index.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node tests/test_jquery_guard.js && node tests/test_observation_mode_roundtrip.js"
+  },
+  "dependencies": {
+    "@babel/parser": "^7.24.0",
+    "@babel/traverse": "^7.24.0",
+    "@babel/types": "^7.24.0",
+    "better-sqlite3": "^12.9.0",
+    "commander": "^12.0.0",
+    "parse5": "^8.0.0",
+    "recast": "^0.23.11"
+  }
+}

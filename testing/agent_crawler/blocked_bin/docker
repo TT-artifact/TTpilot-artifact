@@ -1,0 +1,3 @@
+#!/bin/sh
+echo "BLOCKED: '$(basename "$0")' is disabled during sink crawling. Trigger sinks ONLY through the browser UI - never modify, redeploy, or write into the app/container." >&2
+exit 127

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sink Detector - {% block title %}{% endblock %}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    html[data-theme="light"] {
+      color-scheme: light !important;
+    }
+    @media (prefers-color-scheme: dark) {
+      html {
+        color-scheme: light !important;
+      }
+    }
+  </style>
+  <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
+</head>
+<body>
+  <nav class="container-fluid">
+    <ul>
+      <li><strong>Sink Detector</strong></li>
+    </ul>
+    <ul>
+      <li><a href="/">Sink Dashboard</a></li>
+      <li><a href="/reports">Report Dashboard</a></li>
+      <li><a href="/findings">All Findings</a></li>
+    </ul>
+  </nav>
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+  <script>
+    const COUNT_FIELD_MAP = {
+      'verdict': 'verdicts',
+      'sink_type': 'sink_types',
+      'status': 'statuses',
+      'kind': 'kinds',
+      'app': 'apps'
+    };
+
+    function refreshFilterCounts() {
+      const form = document.getElementById('filter-form');
+      if (!form) return;
+
+      const params = new URLSearchParams();
+      new FormData(form).forEach((val, key) => params.append(key, val));
+
+      fetch('/api/counts?' + params.toString())
+        .then(r => r.json())
+        .then(counts => {
+          document.querySelectorAll('label[data-filter-field]').forEach(label => {
+            const field = label.dataset.filterField;
+            const value = label.dataset.filterValue;
+            const countKey = COUNT_FIELD_MAP[field];
+            if (!countKey) return;
+
+            const count = (counts[countKey] && counts[countKey][value]) || 0;
+            const badge = label.querySelector('.filter-count');
+            if (badge) badge.textContent = '(' + count + ')';
+          });
+        })
+        .catch(() => {});
+    }
+
+    document.body.addEventListener('htmx:afterSettle', function(evt) {
+      if (evt.target && evt.target.id === 'findings-tbody') {
+        refreshFilterCounts();
+      }
+    });
+
+    function toggleSinkGroup(row) {
+      const detailsRow = row.nextElementSibling;
+      if (!detailsRow || !detailsRow.classList.contains('sink-details-row')) return;
+
+      const isExpanded = detailsRow.style.display !== 'none';
+      detailsRow.style.display = isExpanded ? 'none' : 'table-row';
+
+      const indicator = row.querySelector('.expand-indicator');
+      if (indicator) {
+        indicator.textContent = isExpanded ? '▶' : '▼';
+      }
+
+      if (!isExpanded) {
+        const sinkKey = detailsRow.dataset.sinkKey;
+        const table = detailsRow.dataset.table;
+        const appMatch = window.location.pathname.match(/\/reports\/([^/]+)/);
+        if (!appMatch) return;
+
+        const app = appMatch[1];
+        const url = `/reports/${app}/details?table=${encodeURIComponent(table)}&sink_key=${encodeURIComponent(sinkKey)}`;
+
+        fetch(url)
+          .then(r => r.text())
+          .then(html => {
+            const detailsContent = detailsRow.querySelector('td > div');
+            if (detailsContent) {
+              detailsContent.innerHTML = html;
+            }
+          })
+          .catch(err => {
+            const detailsContent = detailsRow.querySelector('td > div');
+            if (detailsContent) {
+              detailsContent.innerHTML = '<div style="color: #c00; padding: 8px;">Error loading details</div>';
+            }
+          });
+      }
+    }
+  </script>
+</body>
+</html>

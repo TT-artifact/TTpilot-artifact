@@ -1,0 +1,29 @@
+const MAX_BINDING_DEPTH = 3;
+
+const SINK_STATUSES = new Set([
+  'RECEIVER_MATCH',
+  'RECEIVER_UNRESOLVABLE',
+  'NO_RECEIVER',
+  'PARAM_UNRESOLVABLE',
+]);
+const SKIPPED_STATUSES = new Set(['NO_VIOLATION', 'RECEIVER_MISMATCH']);
+
+const VERDICTS = {
+  TYPE1: 'TYPE1',
+  TYPE2: 'TYPE2',
+  TYPE3: 'TYPE3',
+  TYPE4: 'TYPE4',
+  TYPE5: 'TYPE5',
+};
+
+const VERDICT_TO_POLICY = {
+  [VERDICTS.TYPE1]: 'passThruPolicy',
+  [VERDICTS.TYPE2]: 'passThruPolicy',
+  [VERDICTS.TYPE3]: 'classifyPolicy',
+  [VERDICTS.TYPE4]: 'monitorPolicy',
+  [VERDICTS.TYPE5]: 'sanitizePolicy',
+};
+
+const SINK_TYPE_SEVERITY = { script: 3, scriptURL: 2, html: 1 };
+
+module.exports = { MAX_BINDING_DEPTH, SINK_STATUSES, SKIPPED_STATUSES, VERDICTS, VERDICT_TO_POLICY, SINK_TYPE_SEVERITY };

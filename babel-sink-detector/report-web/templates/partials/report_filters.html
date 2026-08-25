@@ -1,0 +1,66 @@
+<div style="background: #f8f9fa; border-radius: 6px; padding: 18px; margin-bottom: 24px;">
+  <h3 style="margin-top: 0; margin-bottom: 14px; font-size: 0.95em; display: flex; align-items: center; gap: 8px;">
+    <span style="width: 3px; height: 18px; background: #7c3aed; border-radius: 2px;"></span>
+    Filter Results
+  </h3>
+  <form id="report-filter-form">
+    <input type="hidden" name="table" value="{{ table }}">
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 18px;">
+      <div>
+        <div style="font-weight: 600; margin-bottom: 8px; color: #1f2937; text-transform: uppercase; font-size: 0.75em; letter-spacing: 0.4px;">Verdict</div>
+        {% for v in available_verdicts %}
+        <label style="display: flex; align-items: center; margin-bottom: 6px; cursor: pointer; font-size: 0.85em;" data-filter-field="verdict" data-filter-value="{{ v }}">
+          <input type="checkbox" name="verdict" value="{{ v }}"
+                 {% if v in filters.verdict %}checked{% endif %}
+                 hx-get="/reports/{{ app }}/data?table={{ table }}"
+                 hx-target="#report-table-container"
+                 hx-swap="outerHTML"
+                 hx-trigger="change"
+                 hx-include="#report-filter-form"
+                 style="margin-right: 6px; cursor: pointer;">
+          <span>{{ v }} <span class="filter-count" style="color: #7f8c8d;"></span></span>
+        </label>
+        {% endfor %}
+      </div>
+
+      <div>
+        <div style="font-weight: 600; margin-bottom: 8px; color: #1f2937; text-transform: uppercase; font-size: 0.75em; letter-spacing: 0.4px;">TT Type</div>
+        <div style="display: grid; gap: 6px; max-height: 200px; overflow-y: auto;">
+          {% for t in available_tt_types %}
+          <label style="display: flex; align-items: center; cursor: pointer; font-size: 0.85em;" data-filter-field="tt_type" data-filter-value="{{ t }}">
+            <input type="checkbox" name="tt_type" value="{{ t }}"
+                   {% if t in filters.tt_type %}checked{% endif %}
+                   hx-get="/reports/{{ app }}/data?table={{ table }}"
+                   hx-target="#report-table-container"
+                   hx-swap="outerHTML"
+                   hx-trigger="change"
+                   hx-include="#report-filter-form"
+                   style="margin-right: 6px; cursor: pointer;">
+            <span>{{ t }} <span class="filter-count" style="color: #7f8c8d;"></span></span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div>
+        <div style="font-weight: 600; margin-bottom: 8px; color: #1f2937; text-transform: uppercase; font-size: 0.75em; letter-spacing: 0.4px;">Sink Kind</div>
+        <div style="display: grid; gap: 6px; max-height: 200px; overflow-y: auto;">
+          {% for k in available_kinds %}
+          <label style="display: flex; align-items: center; cursor: pointer; font-size: 0.85em;" data-filter-field="kind" data-filter-value="{{ k }}">
+            <input type="checkbox" name="kind" value="{{ k }}"
+                   {% if k in filters.kind %}checked{% endif %}
+                   hx-get="/reports/{{ app }}/data?table={{ table }}"
+                   hx-target="#report-table-container"
+                   hx-swap="outerHTML"
+                   hx-trigger="change"
+                   hx-include="#report-filter-form"
+                   style="margin-right: 6px; cursor: pointer;">
+            <span>{{ k }} <span class="filter-count" style="color: #7f8c8d;"></span></span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

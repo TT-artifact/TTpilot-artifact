@@ -1,0 +1,15 @@
+FROM node:20-alpine
+
+WORKDIR /reverse-proxy
+
+COPY runtime/reverse-proxy/package*.json ./
+RUN npm ci --production 2>/dev/null || npm install --production
+
+COPY runtime/reverse-proxy/src/ ./src/
+
+ARG TT_POLICY_SRC
+COPY ${TT_POLICY_SRC} /app/tt-policy.js
+
+EXPOSE 8000
+
+CMD ["node", "src/proxy.js"]

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Report Dashboard{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 24px;">
+  <h1 style="margin-bottom: 6px; font-size: 1.5em;">Report Dashboard</h1>
+  <p style="color: #7f8c8d; margin: 0; font-size: 0.9em;">Runtime violation reports from Trusted Types policy</p>
+</div>
+
+{% if apps %}
+<table class="findings-table">
+  <thead>
+    <tr>
+      <th>Application</th>
+      <th style="text-align: right;">Classify</th>
+      <th style="text-align: right;">Violations</th>
+      <th style="text-align: right;">Unique Sinks</th>
+      <th style="text-align: center; color: #8e44ad;">TYPE5</th>
+      <th style="text-align: center; color: #c0392b;">TYPE4</th>
+      <th style="text-align: center; color: #e67e22;">TYPE3</th>
+      <th style="text-align: center; color: #2980b9;">TYPE2</th>
+      <th style="text-align: center; color: #27ae60;">TYPE1</th>
+      <th style="text-align: center; color: #7f8c8d;">NO_VIOLATION</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for app in apps %}
+    <tr style="cursor: pointer;" onclick="window.location.href='/reports/{{ app.app_id }}'">
+      <td><a href="/reports/{{ app.app_id }}" style="color: #2980b9; text-decoration: none; font-weight: 500;">{{ app.app_id }}</a></td>
+      <td style="text-align: right; font-weight: 600;">{{ app.classify_count }}</td>
+      <td style="text-align: right; font-weight: 600;">{{ app.violation_count }}</td>
+      <td style="text-align: right; font-weight: 600;">{{ app.unique_sinks }}</td>
+      <td style="text-align: center;">
+        <span class="badge badge-TYPE5">{{ app.verdict_counts.get('TYPE5', 0) }}</span>
+      </td>
+      <td style="text-align: center;">
+        <span class="badge badge-TYPE4">{{ app.verdict_counts.get('TYPE4', 0) }}</span>
+      </td>
+      <td style="text-align: center;">
+        <span class="badge badge-TYPE3">{{ app.verdict_counts.get('TYPE3', 0) }}</span>
+      </td>
+      <td style="text-align: center;">
+        <span class="badge badge-TYPE2">{{ app.verdict_counts.get('TYPE2', 0) }}</span>
+      </td>
+      <td style="text-align: center;">
+        <span class="badge badge-TYPE1">{{ app.verdict_counts.get('TYPE1', 0) }}</span>
+      </td>
+      <td style="text-align: center;">
+        <span class="badge badge-NO_VIOLATION">{{ app.verdict_counts.get('NO_VIOLATION', 0) }}</span>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No reports.db found</p>
+{% endif %}
+{% endblock %}

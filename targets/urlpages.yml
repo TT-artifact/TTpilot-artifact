@@ -1,0 +1,20 @@
+build:
+  enabled: false
+codeql:
+  timeout: 3600
+crawl:
+  base_url: http://localhost:8080/
+  max_duration_sec: 600
+  max_pages: 50
+serve:
+  docker:
+    context: docker/apps/urlpages
+    init_wait_sec: 10
+    needs_mysql: false
+  port: 8080
+  type: docker
+target:
+  commit: 035b647
+  framework: vanilla
+  name: urlpages
+  repo: https://github.com/jstrieb/urlpages.git

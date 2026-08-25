@@ -1,0 +1,33 @@
+build:
+  enabled: false
+codeql:
+  timeout: 3600
+crawl:
+  auth:
+    enabled: true
+    type: form
+    credentials:
+      login_url: http://localhost:8080/index.php
+      username: admin
+      password: admin
+  base_url: http://localhost:8080/
+  max_duration_sec: 600
+  max_pages: 50
+  zap_hybrid:
+    client_max_duration_sec: 0
+meta:
+  cve: CVE-2023-49086
+serve:
+  docker:
+    context: docker/apps/cacti
+    init_wait_sec: 60
+  port: 8080
+  type: docker
+detect:
+  exclude_dirs:
+    - js
+target:
+  commit: release/1.2.25
+  framework: vanilla
+  name: cacti
+  repo: https://github.com/Cacti/cacti.git

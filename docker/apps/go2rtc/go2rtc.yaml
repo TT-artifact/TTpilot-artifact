@@ -1,0 +1,19 @@
+api:
+  listen: ":8080"
+
+rtsp:
+  listen: ":8554"
+
+webrtc:
+  listen: ":8555"
+
+srtp:
+  listen: ":8443"
+
+log:
+  level: info
+
+streams:
+  # ffmpeg lavfi 가상 소스 - 실제 카메라 없이 테스트용
+  test-pattern:
+    - exec:ffmpeg -re -f lavfi -i "testsrc2=size=1280x720:rate=30" -f lavfi -i "sine=frequency=440:sample_rate=44100" -vcodec libx264 -preset ultrafast -tune zerolatency -acodec aac -f rtsp {output}

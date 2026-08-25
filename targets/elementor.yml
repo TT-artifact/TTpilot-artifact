@@ -1,0 +1,37 @@
+build:
+  enabled: false
+codeql:
+  timeout: 3600
+crawl:
+  auth:
+    credentials:
+      login_url: http://localhost:8080/wp-login.php
+      username: admin
+      password: adminpass
+    enabled: true
+    type: form
+  base_url: http://localhost:8080/
+  max_duration_sec: 600
+  max_pages: 50
+  zap_hybrid:
+    client_max_duration_sec: 0
+meta:
+  uses_jquery: true
+serve:
+  docker:
+    context: docker/apps/elementor
+    init_wait_sec: 45
+    needs_mysql: true
+    environment:
+      WORDPRESS_DB_HOST: mysql
+      WORDPRESS_DB_NAME: app_db
+      WORDPRESS_DB_USER: root
+      WORDPRESS_DB_PASSWORD: root
+      WORDPRESS_SITE_URL: http://localhost:8080
+  port: 8080
+  type: docker
+target:
+  commit: 5.8.1
+  framework: php
+  name: elementor
+  repo: https://github.com/WordPress/WordPress.git

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}All Findings{% endblock %}
+
+{% block content %}
+<style>
+.pagination-link {
+  text-decoration: none !important;
+  color: #2980b9 !important;
+  cursor: pointer;
+}
+.pagination-link:visited {
+  color: #2980b9 !important;
+  text-decoration: none !important;
+}
+.pagination-link:hover {
+  color: #1e5a96 !important;
+  text-decoration: none !important;
+}
+.pagination-link:active {
+  color: #2980b9 !important;
+  text-decoration: none !important;
+}
+</style>
+
+<div style="margin-bottom: 20px;">
+  <h1 style="margin-bottom: 4px; font-size: 1.4em;">All Findings</h1>
+  <p style="color: #7f8c8d; margin: 0; font-size: 0.85em;">Search and filter across all applications</p>
+</div>
+
+<div id="filter-panel">
+  {% include "partials/findings_filters.html" %}
+</div>
+
+<div>
+  <h3 style="margin-bottom: 12px; font-size: 0.95em; display: flex; align-items: center; gap: 8px;">
+    <span style="width: 3px; height: 18px; background: #0f766e; border-radius: 2px;"></span>
+    Results
+  </h3>
+  <table class="findings-table" style="width: 100%;">
+    <colgroup>
+      <col style="width: 9%;">
+      <col style="width: 4%;">
+      <col style="width: 16%;">
+      <col style="width: 8%;">
+      <col style="width: 12%;">
+      <col style="width: 12%;">
+      <col style="width: 15%;">
+      <col style="width: 16%;">
+      <col style="width: 8%;">
+    </colgroup>
+    <thead>
+      <tr>
+        <th style="width: 9%;">App</th>
+        <th style="width: 4%;">ID</th>
+        <th style="width: 16%;">Key</th>
+        <th style="width: 8%;">Type</th>
+        <th style="width: 12%;">Kind</th>
+        <th style="width: 12%;">Status</th>
+        <th style="width: 15%;">Location</th>
+        <th style="width: 16%;">Snippet</th>
+        <th style="width: 8%;">Verdict</th>
+      </tr>
+    </thead>
+    <tbody id="findings-tbody">
+      {% set table_colspan = 9 %}
+      {% include "partials/findings_table.html" %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+function toggleExpand(row) {
+  const expandRow = row.nextElementSibling;
+  if (expandRow.style.display === 'none' || expandRow.style.display === '') {
+    expandRow.style.display = 'table-row';
+    if (!expandRow.hasAttribute('data-loaded')) {
+      const findingId = expandRow.getAttribute('data-finding-id');
+      const app = expandRow.getAttribute('data-app');
+      fetch(`/sinks/${app}/findings/${findingId}/expand`)
+        .then(r => r.text())
+        .then(html => {
+          const td = expandRow.querySelector('td');
+          if (td) td.innerHTML = html;
+          expandRow.setAttribute('data-loaded', 'true');
+        });
+    }
+  } else {
+    expandRow.style.display = 'none';
+  }
+}
+</script>
+{% endblock %}

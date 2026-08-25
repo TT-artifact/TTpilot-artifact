@@ -1,0 +1,26 @@
+FROM node:20-alpine
+
+WORKDIR /report-server
+
+COPY runtime/report-server/package*.json ./
+RUN npm ci --production 2>/dev/null || npm install --production
+
+COPY runtime/report-server/src/ ./src/
+
+RUN mkdir -p /data
+
+EXPOSE 9000
+
+RUN mkdir -p /report-server-entrypoint && cat > /report-server-entrypoint/start.sh <<'EOF'
+#!/bin/sh
+if [ "$REGRESSION_EVAL_MODE" = "true" ]; then
+  DB_PATH="/data/eval/functionality/reports.db"
+else
+  DB_PATH="/data/reports.db"
+fi
+mkdir -p "$(dirname "$DB_PATH")" && chmod 777 "$(dirname "$DB_PATH")"
+exec node src/index.js --port 9000 --db "$DB_PATH"
+EOF
+RUN chmod +x /report-server-entrypoint/start.sh
+
+CMD ["/report-server-entrypoint/start.sh"]

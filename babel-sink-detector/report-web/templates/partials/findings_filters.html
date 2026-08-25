@@ -1,0 +1,79 @@
+<div style="background: #f8f9fa; border-radius: 6px; padding: 18px; margin-bottom: 24px;">
+  <h3 style="margin-top: 0; margin-bottom: 14px; font-size: 0.95em; display: flex; align-items: center; gap: 8px;">
+    <span style="width: 3px; height: 18px; background: #7c3aed; border-radius: 2px;"></span>
+    Filter Results
+  </h3>
+  <form id="filter-form"
+        hx-get="/findings"
+        hx-target="#findings-tbody"
+        hx-swap="innerHTML"
+        hx-trigger="change">
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 18px;">
+      <div>
+        <div style="font-weight: 600; margin-bottom: 8px; color: #1f2937; text-transform: uppercase; font-size: 0.75em; letter-spacing: 0.4px;">Application</div>
+        <div style="display: grid; gap: 6px; max-height: 200px; overflow-y: auto;">
+          {% for app_name in apps %}
+          {% set count = app_counts.get(app_name, 0) %}
+          <label style="display: flex; align-items: center; cursor: pointer; font-size: 0.85em;" data-filter-field="app" data-filter-value="{{ app_name }}">
+            <input type="checkbox" name="app" value="{{ app_name }}" {% if app_name in selected_apps %}checked{% endif %} style="margin-right: 6px; cursor: pointer;">
+            <span>{{ app_name }} <span class="filter-count" style="color: #7f8c8d;">({{ count }})</span></span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div>
+        <div style="font-weight: 600; margin-bottom: 8px; color: #1f2937; text-transform: uppercase; font-size: 0.75em; letter-spacing: 0.4px;">Sink Kind</div>
+        <div style="display: grid; gap: 6px; max-height: 200px; overflow-y: auto;">
+          {% for sink_kind in kind_counts.keys() | sort %}
+          {% set count = kind_counts.get(sink_kind, 0) %}
+          <label style="display: flex; align-items: center; cursor: pointer; font-size: 0.85em;" data-filter-field="kind" data-filter-value="{{ sink_kind }}">
+            <input type="checkbox" name="kind" value="{{ sink_kind }}" {% if sink_kind in selected_kinds %}checked{% endif %} style="margin-right: 6px; cursor: pointer;">
+            <span>{{ sink_kind }} <span class="filter-count" style="color: #7f8c8d;">({{ count }})</span></span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div>
+        <div style="font-weight: 600; margin-bottom: 8px; color: #1f2937; text-transform: uppercase; font-size: 0.75em; letter-spacing: 0.4px;">Verdict</div>
+        <div style="display: grid; gap: 6px;">
+          {% for verdict in ['TYPE5', 'TYPE4', 'TYPE3', 'TYPE2', 'TYPE1'] %}
+          {% set count = verdict_counts.get(verdict, 0) %}
+          <label style="display: flex; align-items: center; cursor: pointer; font-size: 0.85em;" data-filter-field="verdict" data-filter-value="{{ verdict }}">
+            <input type="checkbox" name="verdict" value="{{ verdict }}" {% if verdict in selected_verdicts %}checked{% endif %} style="margin-right: 6px; cursor: pointer;">
+            <span>{{ verdict }} <span class="filter-count" style="color: #7f8c8d;">({{ count }})</span></span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div>
+        <div style="font-weight: 600; margin-bottom: 8px; color: #1f2937; text-transform: uppercase; font-size: 0.75em; letter-spacing: 0.4px;">Sink Type</div>
+        <div style="display: grid; gap: 6px;">
+          {% for sink_type in sink_type_counts.keys() | sort %}
+          {% set count = sink_type_counts.get(sink_type, 0) %}
+          <label style="display: flex; align-items: center; cursor: pointer; font-size: 0.85em;" data-filter-field="sink_type" data-filter-value="{{ sink_type }}">
+            <input type="checkbox" name="sink_type" value="{{ sink_type }}" {% if sink_type in selected_sink_types %}checked{% endif %} style="margin-right: 6px; cursor: pointer;">
+            <span>{{ sink_type }} <span class="filter-count" style="color: #7f8c8d;">({{ count }})</span></span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div>
+        <div style="font-weight: 600; margin-bottom: 8px; color: #1f2937; text-transform: uppercase; font-size: 0.75em; letter-spacing: 0.4px;">Status</div>
+        <div style="display: grid; gap: 6px;">
+          {% for status in ['RECEIVER_MATCH', 'RECEIVER_UNRESOLVABLE', 'NO_RECEIVER'] %}
+          {% set count = status_counts.get(status, 0) %}
+          <label style="display: flex; align-items: center; cursor: pointer; font-size: 0.85em;" data-filter-field="status" data-filter-value="{{ status }}">
+            <input type="checkbox" name="status" value="{{ status }}" {% if status in selected_statuses %}checked{% endif %} style="margin-right: 6px; cursor: pointer;">
+            <span>{{ status }} <span class="filter-count" style="color: #7f8c8d;">({{ count }})</span></span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

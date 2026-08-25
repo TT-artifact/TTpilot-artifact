@@ -1,0 +1,46 @@
+build:
+  enabled: false
+codeql:
+  timeout: 3600
+crawl:
+  auth:
+    enabled: true
+    type: oauth_popup
+    credentials:
+      login_url: http://localhost:8080/
+      username: admin@example.com
+      password: adminPass123!
+      # Squidex uses i18n for button text ("Login to Squidex"), so has-text matching
+      # can fail if the translation bundle hasn't loaded yet.  The CSS class is set
+      # unconditionally by the Angular template, making it a more reliable trigger.
+      login_trigger: "button.login-button"
+  base_url: http://localhost:8080/
+  max_duration_sec: 600
+  max_pages: 50
+  zap_hybrid:
+    client_max_duration_sec: 0
+meta:
+  cve: CVE-2023-46252
+serve:
+  docker:
+    context: docker/apps/squidex
+    init_wait_sec: 60
+    # Squidex's OpenIddict OAuth client validates the popup login flow's
+    # redirect_uri against this configured base URL (bound into appsettings.json
+    # via the ASP.NET env-var convention urls:baseUrl -> URLS__BASEURL). Without
+    # this in the compose environment: block, extract_env_for_unpatched() in
+    # eval/utils/compose_utils.py has nothing to rewrite, so the unpatched eval
+    # container (served on a different host port, e.g. 8081) keeps the
+    # Dockerfile's baked-in localhost:8080 default and OpenIddict rejects every
+    # login attempt with "'redirect_uri' is not valid for this client
+    # application" — confirmed via live reproduction, the popup itself never
+    # gets past the identity-server authorize request.
+    environment:
+      URLS__BASEURL: http://localhost:8080/
+  port: 8080
+  type: docker
+target:
+  commit: '7.8.2'
+  framework: angular
+  name: squidex
+  repo: https://github.com/Squidex/squidex.git

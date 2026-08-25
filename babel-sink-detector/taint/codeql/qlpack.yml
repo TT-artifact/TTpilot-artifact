@@ -1,0 +1,7 @@
+name: tt-auto-js-sinks
+version: 0.1.0
+library: false
+dependencies:
+  codeql/javascript-all: "2.6.26"
+extractor: javascript
+suites: codeql-suites

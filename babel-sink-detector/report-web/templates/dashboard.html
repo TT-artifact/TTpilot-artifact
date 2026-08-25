@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Sink Dashboard{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 24px;">
+  <h1 style="margin-bottom: 6px; font-size: 1.5em;">Sink Dashboard</h1>
+  <p style="color: #7f8c8d; margin: 0; font-size: 0.9em;">Static analysis results from source code scanning</p>
+</div>
+
+<div>
+  <table class="findings-table">
+    <thead>
+      <tr>
+        <th>Application</th>
+        <th style="text-align: right;">Total Sinks</th>
+        <th style="text-align: center; color: #8e44ad;">TYPE5</th>
+        <th style="text-align: center; color: #c0392b;">TYPE4</th>
+        <th style="text-align: center; color: #e67e22;">TYPE3</th>
+        <th style="text-align: center; color: #2980b9;">TYPE2</th>
+        <th style="text-align: center; color: #27ae60;">TYPE1</th>
+        <th style="text-align: center; color: #7f8c8d;">NO_VIOLATION</th>
+        <th style="text-align: center;">Skipped</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in stats %}
+      <tr style="cursor: pointer;" onclick="window.location.href='/sinks/{{ row.app }}'">
+        <td><a href="/sinks/{{ row.app }}" style="color: #2980b9; text-decoration: none; font-weight: 500;">{{ row.app }}</a></td>
+        <td style="text-align: right; font-weight: 600;">{{ row.total }}</td>
+        <td style="text-align: center;"><span class="badge badge-TYPE5">{{ row.type5 }}</span></td>
+        <td style="text-align: center;"><span class="badge badge-TYPE4">{{ row.type4 }}</span></td>
+        <td style="text-align: center;"><span class="badge badge-TYPE3">{{ row.type3 }}</span></td>
+        <td style="text-align: center;"><span class="badge badge-TYPE2">{{ row.type2 }}</span></td>
+        <td style="text-align: center;"><span class="badge badge-TYPE1">{{ row.type1 }}</span></td>
+        <td style="text-align: center;"><span class="badge badge-NO_VIOLATION">{{ row.no_violation }}</span></td>
+        <td style="text-align: center; color: #7f8c8d;">{{ row.skipped }}</td>
+      </tr>
+      <tr style="background: #f9fafb;">
+        <td style="color: #7f8c8d; font-size: 0.9em;">↳ target</td>
+        <td style="text-align: right; font-weight: 600;">{{ row.target }}</td>
+        <td style="text-align: center;"><span class="badge badge-TYPE5">{{ row.type5_target }}</span></td>
+        <td style="text-align: center;"><span class="badge badge-TYPE4">{{ row.type4_target }}</span></td>
+        <td style="text-align: center;"><span class="badge badge-TYPE3">{{ row.type3_target }}</span></td>
+        <td style="text-align: center;"><span class="badge badge-TYPE2">{{ row.type2_target }}</span></td>
+        <td style="text-align: center;"><span class="badge badge-TYPE1">{{ row.type1_target }}</span></td>
+        <td style="text-align: center;"><span class="badge badge-NO_VIOLATION">{{ row.no_violation_target }}</span></td>
+        <td></td>
+      </tr>
+      {% endfor %}
+      <tr style="font-weight: 600; border-top: 2px solid #d1d5db;">
+        <td>Total</td>
+        <td style="text-align: right;">{{ total.total }}</td>
+        <td style="text-align: center;"><span class="badge badge-TYPE5">{{ total.type5 }}</span></td>
+        <td style="text-align: center;"><span class="badge badge-TYPE4">{{ total.type4 }}</span></td>
+        <td style="text-align: center;"><span class="badge badge-TYPE3">{{ total.type3 }}</span></td>
+        <td style="text-align: center;"><span class="badge badge-TYPE2">{{ total.type2 }}</span></td>
+        <td style="text-align: center;"><span class="badge badge-TYPE1">{{ total.type1 }}</span></td>
+        <td style="text-align: center;"><span class="badge badge-NO_VIOLATION">{{ total.no_violation }}</span></td>
+        <td style="text-align: center; color: #7f8c8d;">{{ total.skipped }}</td>
+      </tr>
+      <tr style="font-weight: 600; background: #f9fafb;">
+        <td style="color: #7f8c8d; font-size: 0.9em;">↳ target</td>
+        <td style="text-align: right;">{{ total.target }}</td>
+        <td style="text-align: center;"><span class="badge badge-TYPE5">{{ total.type5_target }}</span></td>
+        <td style="text-align: center;"><span class="badge badge-TYPE4">{{ total.type4_target }}</span></td>
+        <td style="text-align: center;"><span class="badge badge-TYPE3">{{ total.type3_target }}</span></td>
+        <td style="text-align: center;"><span class="badge badge-TYPE2">{{ total.type2_target }}</span></td>
+        <td style="text-align: center;"><span class="badge badge-TYPE1">{{ total.type1_target }}</span></td>
+        <td style="text-align: center;"><span class="badge badge-NO_VIOLATION">{{ total.no_violation_target }}</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

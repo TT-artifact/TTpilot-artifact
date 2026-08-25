@@ -1,0 +1,452 @@
+{% extends "base.html" %}
+
+{% block title %}{{ app }}{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 20px;">
+  <h1 style="margin-bottom: 4px; font-size: 1.4em;">{{ app }}</h1>
+  <p style="color: #7f8c8d; margin: 0; font-size: 0.85em;">Detailed analysis of detected sinks</p>
+</div>
+
+<div id="filter-panel">
+  {% include "partials/app_detail_filters.html" %}
+</div>
+
+<div style="display: flex; align-items: flex-start; margin-bottom: 24px; gap: 8px; flex-wrap: wrap;">
+  <div id="patch-result-banner" style="display: none; padding: 12px 16px; border-radius: 4px; font-size: 0.9em; border: 1px solid; text-align: left; flex: 1;"></div>
+  <div style="display: flex; gap: 8px; margin-left: auto;">
+    <button id="patch-checked-btn" style="display: none; padding: 8px 16px; background: #2980b9; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; font-weight: 500;">
+      Patch Checked
+    </button>
+    <button id="update-patches-btn" style="display: none; padding: 8px 16px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; font-weight: 500;">
+      Update Checked
+    </button>
+    <button id="regenerate-policy-btn" onclick="regeneratePolicy()" style="display: none; padding: 8px 16px; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; font-weight: 500;">
+      Regenerate Policy
+    </button>
+  </div>
+</div>
+
+<div style="display: flex; gap: 12px; margin-bottom: 16px; border-bottom: 2px solid #ecf0f1;">
+  <button id="findings-tab-btn" onclick="switchTab('findings')" style="padding: 12px 16px; background: none; border: none; cursor: pointer; font-size: 0.95em; font-weight: 600; color: #2980b9; border-bottom: 3px solid #2980b9; margin-bottom: -2px; transition: all 0.2s;">
+    📋 Findings (Sinks)
+  </button>
+  <button id="updated-verdicts-tab-btn" onclick="switchTab('updated-verdicts')" style="padding: 12px 16px; background: none; border: none; cursor: pointer; font-size: 0.95em; font-weight: 600; color: #7f8c8d; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all 0.2s;">
+    📝 Updated Verdicts
+  </button>
+  <button id="signatures-tab-btn" onclick="switchTab('signatures')" style="padding: 12px 16px; background: none; border: none; cursor: pointer; font-size: 0.95em; font-weight: 600; color: #7f8c8d; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all 0.2s;">
+    ✓ Approved Signatures
+  </button>
+</div>
+
+<div>
+  <style>
+.pagination-link {
+  text-decoration: none !important;
+  color: #2980b9 !important;
+  cursor: pointer;
+}
+.pagination-link:visited {
+  color: #2980b9 !important;
+  text-decoration: none !important;
+}
+.pagination-link:hover {
+  color: #1e5a96 !important;
+  text-decoration: none !important;
+}
+.pagination-link:active {
+  color: #2980b9 !important;
+  text-decoration: none !important;
+}
+  </style>
+
+  <div id="findings-section">
+    <table class="findings-table" style="width: 100%; table-layout: fixed;">
+    <colgroup>
+      <col style="width: 4%;">
+      <col style="width: 4%;">
+      <col style="width: 18%;">
+      <col style="width: 8%;">
+      <col style="width: 14%;">
+      <col style="width: 12%;">
+      <col style="width: 16%;">
+      <col style="width: 16%;">
+      <col style="width: 8%;">
+    </colgroup>
+    <thead>
+      <tr>
+        <th style="width: 4%;"></th>
+        <th style="width: 4%;">ID</th>
+        <th style="width: 18%;">Key</th>
+        <th style="width: 8%;">Type</th>
+        <th style="width: 14%;">Kind</th>
+        <th style="width: 12%;">Status</th>
+        <th style="width: 16%;">Location</th>
+        <th style="width: 16%;">Snippet</th>
+        <th style="width: 8%;">Verdict</th>
+      </tr>
+    </thead>
+    <tbody id="findings-tbody">
+      {% set table_colspan = 9 %}
+      {% include "partials/findings_table.html" %}
+    </tbody>
+  </table>
+  </div>
+
+  <div id="updated-verdicts-section" style="display: none;">
+    <table style="width: 100%; table-layout: fixed;">
+      <colgroup>
+        <col style="width: 4%;">
+        <col style="width: 5%;">
+        <col style="width: 18%;">
+        <col style="width: 15%;">
+        <col style="width: 23%;">
+        <col style="width: 18%;">
+        <col style="width: 17%;">
+      </colgroup>
+      <thead>
+        <tr>
+          <th style="width: 4%;"></th>
+          <th style="width: 5%;">ID</th>
+          <th style="width: 18%;">Key</th>
+          <th style="width: 15%;">Location</th>
+          <th style="width: 23%;">Snippet</th>
+          <th style="width: 18%;">Verdict</th>
+          <th style="width: 17%;">Patch Verdict</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if oracle_verdicts %}
+          {% for ov in oracle_verdicts %}
+          <tr onclick="event.target.tagName !== 'INPUT' && toggleOracleExpand(this)" style="cursor: pointer; border-bottom: 1px solid #ecf0f1; transition: background 0.2s;" data-sink-key="{{ ov.sink_key }}" data-app="{{ app }}">
+            <td style="padding: 12px; text-align: center;"><input type="checkbox" data-oracle-sink-key="{{ ov.sink_key }}" checked style="cursor: pointer;" onclick="event.stopPropagation();"></td>
+            <td style="padding: 12px; text-align: center; color: #2c3e50;">
+              {% if ov.sink_id %}{{ ov.sink_id }}{% else %}<span style="color: #95a5a6;">—</span>{% endif %}
+            </td>
+            <td style="padding: 12px; font-family: 'Monaco', 'Menlo', 'Consolas', monospace; font-size: 0.85em; color: #2c3e50; word-break: break-all;">
+              {{ ov.sink_key[:40] }}{% if ov.sink_key|length > 40 %}…{% endif %}
+            </td>
+            <td style="padding: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              {% if ov.file %}<code style="font-size: 0.8em;">{{ ov.file | short_path }}:{{ ov.line }}</code>{% else %}<span style="color: #95a5a6;">—</span>{% endif %}
+            </td>
+            <td style="padding: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: monospace; font-size: 0.8em; color: #374151;">
+              {{ (ov.original_snippet or '') | truncate(80) }}
+            </td>
+            <td style="padding: 12px;">
+              <span class="badge badge-{{ ov.oracle_verdict }}">{{ ov.oracle_verdict or 'NULL' }}</span>
+            </td>
+            <td style="padding: 12px;">
+              <span style="display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: bold; color: white; background: #c0392b;">{{ ov.patch_verdict or '—' }}</span>
+            </td>
+          </tr>
+          <tr class="expand-row" style="display: none;" data-sink-key="{{ ov.sink_key }}">
+            <td colspan="7" style="overflow: hidden; padding: 0;"></td>
+          </tr>
+          {% endfor %}
+        {% else %}
+        <tr>
+          <td colspan="7" style="padding: 24px; text-align: center; color: #7f8c8d; font-style: italic;">
+            No updated verdicts yet
+          </td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <div id="signatures-section" style="display: none;">
+    <table style="width: 100%; table-layout: fixed;">
+      <colgroup>
+        <col style="width: 5%;">
+        <col style="width: 10%;">
+        <col style="width: 25%;">
+        <col style="width: 15%;">
+        <col style="width: 45%;">
+      </colgroup>
+      <thead>
+        <tr>
+          <th style="width: 5%;"></th>
+          <th style="width: 10%;">Sink ID</th>
+          <th style="width: 25%;">Sink Key</th>
+          <th style="width: 15%;">Type</th>
+          <th style="width: 45%;">Signature</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if js_signatures %}
+          {% for sig in js_signatures %}
+          <tr style="border-bottom: 1px solid #ecf0f1;">
+            <td style="padding: 12px; text-align: center;"><input type="checkbox" data-signature-id="{{ sig.id }}" checked style="cursor: pointer;"></td>
+            <td style="padding: 12px; text-align: center; color: #2c3e50;">
+              {% if sig.sink_id %}{{ sig.sink_id }}{% else %}<span style="color: #95a5a6;">—</span>{% endif %}
+            </td>
+            <td style="padding: 12px; font-family: 'Monaco', 'Menlo', 'Consolas', monospace; font-size: 0.85em; color: #2c3e50; word-break: break-all;">
+              {% if sig.sink_key %}{{ sig.sink_key[:40] }}{% if sig.sink_key|length > 40 %}…{% endif %}{% else %}<span style="color: #95a5a6;">—</span>{% endif %}
+            </td>
+            <td style="padding: 12px; background: #f8f9fa; font-weight: 500; color: #2c3e50;">JS</td>
+            <td style="padding: 12px; font-family: 'Monaco', 'Menlo', 'Consolas', monospace; font-size: 0.85em; color: #2c3e50; word-break: break-all;">
+              {{ sig.signature[:40] }}{% if sig.signature|length > 40 %}…{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        {% endif %}
+        {% if url_signatures %}
+          {% for entry in url_signatures %}
+          <tr style="border-bottom: 1px solid #ecf0f1;">
+            <td style="padding: 12px; text-align: center;"><input type="checkbox" data-url-signature="{{ entry.url }}" checked style="cursor: pointer;"></td>
+            <td colspan="2" style="padding: 12px; text-align: center; color: #95a5a6; font-style: italic;">—</td>
+            <td style="padding: 12px; background: #f8f9fa; font-weight: 500; color: #2c3e50;">URL</td>
+            <td style="padding: 12px; font-family: 'Monaco', 'Menlo', 'Consolas', monospace; font-size: 0.85em; color: #2c3e50; word-break: break-all;">
+              {{ entry.url[:40] }}{% if entry.url|length > 40 %}…{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        {% endif %}
+        {% if not js_signatures and not url_signatures %}
+        <tr>
+          <td colspan="4" style="padding: 24px; text-align: center; color: #7f8c8d; font-style: italic;">
+            No approved signatures yet
+          </td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+function switchTab(tab) {
+  const findingsSection = document.getElementById('findings-section');
+  const updatedVerdictsSection = document.getElementById('updated-verdicts-section');
+  const signaturesSection = document.getElementById('signatures-section');
+  const findingsTabBtn = document.getElementById('findings-tab-btn');
+  const updatedVerdictsTabBtn = document.getElementById('updated-verdicts-tab-btn');
+  const signaturesTabBtn = document.getElementById('signatures-tab-btn');
+
+  const patchCheckedBtn = document.getElementById('patch-checked-btn');
+  const updatePatchesBtn = document.getElementById('update-patches-btn');
+  const regeneratePolicyBtn = document.getElementById('regenerate-policy-btn');
+  findingsSection.style.display = 'none';
+  updatedVerdictsSection.style.display = 'none';
+  signaturesSection.style.display = 'none';
+  findingsTabBtn.style.color = '#7f8c8d';
+  findingsTabBtn.style.borderBottomColor = 'transparent';
+  updatedVerdictsTabBtn.style.color = '#7f8c8d';
+  updatedVerdictsTabBtn.style.borderBottomColor = 'transparent';
+  signaturesTabBtn.style.color = '#7f8c8d';
+  signaturesTabBtn.style.borderBottomColor = 'transparent';
+  patchCheckedBtn.style.display = 'none';
+  updatePatchesBtn.style.display = 'none';
+  regeneratePolicyBtn.style.display = 'none';
+  if (tab === 'findings') {
+    findingsSection.style.display = 'block';
+    findingsTabBtn.style.color = '#2980b9';
+    findingsTabBtn.style.borderBottomColor = '#2980b9';
+    patchCheckedBtn.style.display = 'block';
+  } else if (tab === 'updated-verdicts') {
+    updatedVerdictsSection.style.display = 'block';
+    updatedVerdictsTabBtn.style.color = '#2980b9';
+    updatedVerdictsTabBtn.style.borderBottomColor = '#2980b9';
+    updatePatchesBtn.style.display = 'block';
+  } else if (tab === 'signatures') {
+    signaturesSection.style.display = 'block';
+    signaturesTabBtn.style.color = '#2980b9';
+    signaturesTabBtn.style.borderBottomColor = '#2980b9';
+    regeneratePolicyBtn.style.display = 'block';
+  }
+}
+
+function regeneratePolicy() {
+  const app = '{{ app }}';
+  const btn = event.target;
+  const originalText = btn.textContent;
+
+  btn.disabled = true;
+  btn.textContent = '↻ Regenerating...';
+  btn.style.opacity = '0.7';
+
+  fetch(`/sinks/${app}/regenerate-policy`, { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+      btn.textContent = '✓ Policy regenerated';
+      setTimeout(() => {
+        btn.textContent = originalText;
+        btn.disabled = false;
+        btn.style.opacity = '1';
+      }, 2000);
+    })
+    .catch(err => {
+      btn.textContent = '✗ Error';
+      btn.style.background = '#e74c3c';
+      console.error(err);
+      setTimeout(() => {
+        btn.textContent = originalText;
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.style.background = '#27ae60';
+      }, 2000);
+    });
+}
+
+function toggleExpand(row) {
+  const expandRow = row.nextElementSibling;
+  if (expandRow.style.display === 'none' || expandRow.style.display === '') {
+    expandRow.style.display = 'table-row';
+    if (!expandRow.hasAttribute('data-loaded')) {
+      const findingId = expandRow.getAttribute('data-finding-id');
+      const app = expandRow.getAttribute('data-app');
+      fetch(`/sinks/${app}/findings/${findingId}/expand`)
+        .then(r => r.text())
+        .then(html => {
+          const td = expandRow.querySelector('td');
+          if (td) td.innerHTML = html;
+          expandRow.setAttribute('data-loaded', 'true');
+        });
+    }
+  } else {
+    expandRow.style.display = 'none';
+  }
+}
+
+function toggleOracleExpand(row) {
+  const expandRow = row.nextElementSibling;
+  if (expandRow.style.display === 'none' || expandRow.style.display === '') {
+    expandRow.style.display = 'table-row';
+    if (!expandRow.hasAttribute('data-loaded')) {
+      const sinkKey = row.getAttribute('data-sink-key');
+      const app = row.getAttribute('data-app');
+      fetch(`/sinks/${app}/oracle-verdicts/${encodeURIComponent(sinkKey)}/expand`)
+        .then(r => r.text())
+        .then(html => {
+          const td = expandRow.querySelector('td');
+          if (td) td.innerHTML = html;
+          expandRow.setAttribute('data-loaded', 'true');
+        });
+    }
+  } else {
+    expandRow.style.display = 'none';
+  }
+}
+
+document.getElementById('patch-checked-btn').addEventListener('click', function() {
+  const checkedBoxes = document.querySelectorAll('#findings-tbody input[type="checkbox"]:checked');
+  const findingIds = [];
+
+  checkedBoxes.forEach(checkbox => {
+    const findingId = checkbox.getAttribute('data-finding-id');
+    if (findingId) {
+      findingIds.push(parseInt(findingId));
+    }
+  });
+
+  if (findingIds.length === 0) {
+    alert('Please select at least one finding to patch.');
+    return;
+  }
+
+  const confirmMsg = `Apply refactoring to ${findingIds.length} finding${findingIds.length === 1 ? '' : 's'}?\n\nThis will modify the original source file(s). Continue?`;
+  if (!confirm(confirmMsg)) {
+    return;
+  }
+
+  const btn = document.getElementById('patch-checked-btn');
+  const banner = document.getElementById('patch-result-banner');
+
+  btn.disabled = true;
+  btn.textContent = 'Patching...';
+  banner.style.display = 'none';
+
+  fetch(`/sinks/{{ app }}/patch`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(findingIds)
+  })
+  .then(r => {
+    if (!r.ok) return r.text().then(text => { throw new Error(text); });
+    return r.json();
+  })
+  .then(data => showPatchResults(data.results, data.branch, data.commit, banner))
+  .catch(err => {
+    showPatchResults([{ status: 'error', message: err.message }], '', '', banner);
+  })
+  .finally(() => {
+    btn.disabled = false;
+    btn.textContent = 'Patch Checked';
+  });
+});
+
+document.getElementById('update-patches-btn').addEventListener('click', function() {
+  const checkedBoxes = document.querySelectorAll('#updated-verdicts-section input[type="checkbox"]:checked');
+  const sinkKeys = [];
+  checkedBoxes.forEach(cb => {
+    const sk = cb.getAttribute('data-oracle-sink-key');
+    if (sk) sinkKeys.push(sk);
+  });
+
+  if (sinkKeys.length === 0) {
+    alert('Please select at least one verdict to patch.');
+    return;
+  }
+
+  const confirmMsg = `Apply oracle patch to ${sinkKeys.length} sink${sinkKeys.length === 1 ? '' : 's'}?`;
+  if (!confirm(confirmMsg)) return;
+
+  const btn = document.getElementById('update-patches-btn');
+  const banner = document.getElementById('patch-result-banner');
+  btn.disabled = true;
+  btn.textContent = 'Patching...';
+  banner.style.display = 'none';
+
+  fetch(`/sinks/{{ app }}/oracle-patch`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(sinkKeys)
+  })
+  .then(r => {
+    if (!r.ok) return r.text().then(text => { throw new Error(text); });
+    return r.json();
+  })
+  .then(data => showPatchResults(data.results, data.branch, data.commit, banner))
+  .catch(err => {
+    showPatchResults([{ status: 'error', message: err.message }], '', '', banner);
+  })
+  .finally(() => {
+    btn.disabled = false;
+    btn.textContent = 'Update Checked';
+  });
+});
+
+function showPatchResults(results, branch, commit, banner) {
+  const ok = results.filter(r => r.status === 'ok').length;
+  const skipped = results.filter(r => r.status === 'skipped').length;
+  const errors = results.filter(r => r.status === 'error');
+
+  let msg = '';
+  if (ok > 0) msg += `✓ ${ok} patched`;
+  if (skipped > 0) msg += (msg ? ', ' : '') + `⊘ ${skipped} skipped`;
+  if (errors.length > 0) {
+    msg += (msg ? ', ' : '') + `✗ ${errors.length} error${errors.length === 1 ? '' : 's'}`;
+  }
+  if (branch) {
+    msg += `  |  branch: ${branch} (${commit})`;
+  }
+
+  const isError = errors.length > 0;
+  banner.style.display = 'block';
+  banner.textContent = msg;
+  banner.style.background = isError ? '#fee2e2' : '#dcfce7';
+  banner.style.color = isError ? '#991b1b' : '#166534';
+  banner.style.borderColor = isError ? '#f87171' : '#86efac';
+
+  if (errors.length > 0) {
+    const errorDetails = errors
+      .map(e => `  - Finding ${e.id}: ${e.message}`)
+      .join('\n');
+    console.error('Patch errors:\n' + errorDetails);
+  }
+}
+document.addEventListener('DOMContentLoaded', function() {
+  switchTab('findings');
+});
+</script>
+{% endblock %}

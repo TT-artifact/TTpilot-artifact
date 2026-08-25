@@ -1,0 +1,22 @@
+build:
+  enabled: false
+codeql:
+  timeout: 3600
+crawl:
+  base_url: http://localhost:8080/
+  max_duration_sec: 600
+  max_pages: 50
+  zap_hybrid:
+    client_max_duration_sec: 0
+serve:
+  docker:
+    context: docker/apps/beep.js
+    init_wait_sec: 10
+    needs_mysql: false
+  port: 8080
+  type: docker
+target:
+  commit: ef22ad7
+  framework: vanilla
+  name: beep.js
+  repo: https://github.com/stewdio/beep.js.git

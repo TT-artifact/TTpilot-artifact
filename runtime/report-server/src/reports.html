@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>TT Reports</title>
+<style>
+* { box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #f5f5f5;
+  padding: 20px;
+  margin: 0;
+}
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+h1 { margin: 0 0 8px 0; color: #333; font-size: 24px; }
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.stat-box {
+  background: #f9f9f9;
+  padding: 12px;
+  border-radius: 6px;
+  border-left: 4px solid #0066cc;
+}
+.stat-label { font-size: 12px; color: #666; text-transform: uppercase; font-weight: bold; }
+.stat-value { font-size: 24px; font-weight: bold; color: #333; margin-top: 4px; }
+.table-scroll { overflow-x: auto; width: 100%; }
+table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+.cell-id      { font-family: monospace; font-size: 11px; color: #999; }
+.cell-mono    { font-family: monospace; font-size: 11px; }
+.cell-empty   { color: #ccc; }
+.cell-preview { max-width: 300px; white-space: nowrap; overflow-x: auto; font-family: monospace; font-size: 11px; }
+th { background: #f0f0f0; font-weight: bold; color: #333; }
+tr:hover { background: #f9f9f9; }
+.badge {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: bold;
+  display: inline-block;
+  color: white;
+}
+.badge-TYPE5 { background: #8e44ad; }
+.badge-TYPE4 { background: #c0392b; }
+.badge-TYPE3 { background: #e67e22; }
+.badge-TYPE2 { background: #2980b9; }
+.badge-TYPE1 { background: #27ae60; }
+.badge-NEW { background: #7f8c8d; }
+.badge-NO_VIOLATION { background: #95a5a6; }
+.sink-key  { font-family: monospace; font-size: 12px; color: #0066cc; }
+#rows { min-height: 200px; }
+.error   { color: #d32f2f; padding: 10px; background: #ffebee; border-radius: 4px; }
+.loading { color: #666; padding: 20px; text-align: center; }
+.refactor-tip {
+  cursor: pointer;
+  color: #0066cc;
+  font-size: 10px;
+  margin-left: 4px;
+}
+.sig-btn {
+  font-size: 9px;
+  padding: 1px 5px;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  color: white;
+  margin-left: 3px;
+  vertical-align: middle;
+}
+.sig-btn-js  { background: #7d3c98; }
+.sig-btn-url { background: #1a5276; }
+.sig-btn:disabled { opacity: 0.5; cursor: default; }
+.tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #ddd;
+}
+.tab-btn {
+  padding: 12px 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #666;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.2s;
+}
+.tab-btn.active {
+  color: #0066cc;
+  border-bottom-color: #0066cc;
+}
+.tab-btn:hover {
+  color: #0066cc;
+}
+.view { display: none; }
+.view.active { display: block; }
+tr.clickable { cursor: pointer; }
+tr.selected { background: #e8f0fe; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Trusted Types Reports</h1>
+  <div id="stats" class="stats"></div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchView('classify')" id="tab-classify">Classify Reports</button>
+    <button class="tab-btn" onclick="switchView('violation')" id="tab-violation">Violation Reports</button>
+    <button class="tab-btn" onclick="switchView('all')" id="tab-all">All Reports</button>
+  </div>
+
+  <div id="view-classify" class="view active">
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Sink Key</th>
+          <th>Type</th>
+          <th>Kind</th>
+          <th>Static</th>
+          <th>Patterns</th>
+          <th>Total Hits</th>
+          <th>Last Seen</th>
+          <th>Oracle</th>
+        </tr>
+      </thead>
+      <tbody id="rows-classify"></tbody>
+    </table>
+    </div>
+
+    <div id="classify-detail" style="display:none; margin-top:16px; border-top: 2px solid #0066cc; padding-top: 12px;">
+      <div id="classify-detail-header" style="font-size:13px; color:#0066cc; margin-bottom:8px; font-weight: bold;"></div>
+      <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>URL</th>
+            <th>Preview</th>
+            <th>Source Values</th>
+            <th>Dynamic</th>
+            <th>Reasons</th>
+            <th>JS Sig</th>
+            <th>URL Sig</th>
+            <th>#</th>
+          </tr>
+        </thead>
+        <tbody id="rows-classify-detail"></tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="view-violation" class="view">
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Sink Key</th>
+          <th>Type</th>
+          <th>Kind</th>
+          <th>Static</th>
+          <th>Patterns</th>
+          <th>Total Hits</th>
+          <th>Last Seen</th>
+        </tr>
+      </thead>
+      <tbody id="rows-violation"></tbody>
+    </table>
+    </div>
+
+    <div id="violation-detail" style="display:none; margin-top:16px; border-top: 2px solid #c0392b; padding-top: 12px;">
+      <div id="violation-detail-header" style="font-size:13px; color:#c0392b; margin-bottom:8px; font-weight: bold;"></div>
+      <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>URL</th>
+            <th>Preview</th>
+            <th>Sanitized</th>
+            <th>Source Values</th>
+            <th>Dynamic</th>
+            <th>Reasons</th>
+            <th>JS Sig</th>
+            <th>URL Sig</th>
+            <th>#</th>
+          </tr>
+        </thead>
+        <tbody id="rows-violation-detail"></tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="view-all" class="view">
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Type</th>
+          <th>Sink</th>
+          <th>Preview</th>
+          <th>Page URL</th>
+          <th>Static</th>
+          <th>Dynamic</th>
+          <th>Reasons</th>
+          <th>JS Sig</th>
+          <th>URL Sig</th>
+
+          <th>#</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    </div>
+  </div>
+
+  <div id="oracle-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:8px; width:820px; max-height:80vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.2);">
+
+      <div style="padding:14px 16px; border-bottom:1px solid #eee; display:flex; align-items:center; gap:10px;">
+        <strong style="color:#333;">Oracle Verdict:</strong>
+        <select id="oracle-verdict-sel" style="padding:6px 10px; border:1px solid #ccc; border-radius:4px; font-size:14px;">
+          <option value="TYPE2">TYPE2</option>
+          <option value="TYPE4">TYPE4</option>
+          <option value="TYPE5">TYPE5</option>
+          <option value="NO_VIOLATION">NO_VIOLATION</option>
+        </select>
+        <span id="oracle-modal-key" style="font-size:11px;color:#999;margin-left:auto;overflow:hidden;text-overflow:ellipsis;max-width:300px;font-family:monospace;"></span>
+      </div>
+
+      <div style="display:flex; flex:1; min-height:0; overflow:hidden; border-bottom:1px solid #eee;">
+        <div style="flex:1; display:flex; flex-direction:column; padding:12px; border-right:1px solid #eee; overflow:auto; background:#fafafa;">
+          <div style="font-size:11px;color:#666;margin-bottom:8px;font-weight:bold;">Current Code</div>
+          <pre id="oracle-cur-code" style="font-size:11px;margin:0;white-space:pre-wrap;word-break:break-all;color:#333;"></pre>
+        </div>
+        <div style="flex:1; display:flex; flex-direction:column; padding:12px; overflow:auto; background:#f0f8ff;">
+          <div style="font-size:11px;color:#666;margin-bottom:8px;font-weight:bold;">After Update</div>
+          <pre id="oracle-preview-code" style="font-size:11px;margin:0;white-space:pre-wrap;word-break:break-all;color:#333;"></pre>
+        </div>
+      </div>
+
+      <div style="padding:12px 16px; display:flex; justify-content:flex-end; gap:8px;">
+        <button onclick="closeOracleModal()" style="padding:8px 16px;border:1px solid #ccc;background:#fff;border-radius:4px;cursor:pointer;font-size:14px;color:#333;">Cancel</button>
+        <button id="oracle-update-btn" onclick="submitOracleUpdate()" style="padding:8px 16px;background:#8e44ad;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:14px;font-weight:bold;">Update</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+let currentView = 'classify';
+let selectedClassifySinkKey = null;
+let selectedViolationSinkKey = null;
+const jsAllowlist  = new Set();
+const urlAllowlist = new Set();
+
+async function loadAllowlists() {
+  try {
+    const [jsResp, urlResp] = await Promise.all([
+      fetch('/api/js-signatures'),
+      fetch('/api/url-signatures'),
+    ]);
+    if (jsResp.ok) {
+      const rows = await jsResp.json();
+      jsAllowlist.clear();
+      rows.forEach(r => jsAllowlist.add(r.signature));
+    }
+    if (urlResp.ok) {
+      const rows = await urlResp.json();
+      urlAllowlist.clear();
+      rows.forEach(r => urlAllowlist.add(r.url));
+    }
+  } catch { }
+}
+
+function esc(s) {
+  const m = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+  return ('' + s).replace(/[&<>"']/g, c => m[c]);
+}
+
+function switchView(view) {
+  currentView = view;
+  document.getElementById('tab-classify').classList.toggle('active', view === 'classify');
+  document.getElementById('tab-violation').classList.toggle('active', view === 'violation');
+  document.getElementById('tab-all').classList.toggle('active', view === 'all');
+  document.getElementById('view-classify').classList.toggle('active', view === 'classify');
+  document.getElementById('view-violation').classList.toggle('active', view === 'violation');
+  document.getElementById('view-all').classList.toggle('active', view === 'all');
+  if (view === 'classify') loadClassifyReports();
+  else if (view === 'violation') loadViolationReports();
+  else load();
+}
+
+function renderVerdictBadge(verdict) {
+  if (!verdict) return '-';
+  return `<span class="badge badge-${esc(verdict)}" style="font-size:10px;">${esc(verdict)}</span>`;
+}
+
+function renderOracleVerdict(verdict, confidence, score, mixed) {
+  if (!verdict) return '<span class="cell-empty">—</span>';
+  const opacity = confidence === 'HIGH' ? '1' : confidence === 'MEDIUM' ? '0.7' : '0.45';
+  const mixedMark = mixed ? ' ⚠' : '';
+  const tip = `Score: ${score} | Confidence: ${confidence}${mixed ? ' | MIXED' : ''}`;
+  return `<span class="badge badge-${esc(verdict)}" style="font-size:10px;opacity:${opacity};" title="${esc(tip)}">${esc(verdict)}${mixedMark}</span>`;
+}
+
+function renderVerdictReasons(reasons) {
+  if (!reasons || reasons.length === 0) return '<span class="cell-empty">—</span>';
+  const list = reasons.map(r => esc(r)).join(', ');
+  return `<div style="max-width:200px;overflow-x:auto;white-space:nowrap;font-size:10px;color:#666;" title="${esc(reasons.join(', '))}">${list}</div>`;
+}
+
+function renderPreviewWithXss(preview, xssSources) {
+  const previewHtml = `<div class="cell-preview" style="max-width:500px;">${esc(preview || '')}</div>`;
+  if (!xssSources || xssSources.length === 0) return previewHtml;
+
+  const xssHtml = xssSources.map(s => {
+    const orig = `<span style="color:#c0392b;">${esc(String(s.value || '').slice(0, 60))}${(s.value||'').length > 60 ? '…' : ''}</span>`;
+    const encoded = s.matchedAs
+      ? ` → <span style="color:#8e44ad;" title="encoded variant that matched in sink value">${esc(String(s.matchedAs).slice(0, 60))}${s.matchedAs.length > 60 ? '…' : ''}</span>`
+      : '';
+    return `<div style="font-size:10px;font-family:monospace;margin-top:2px;"><span style="color:#999;font-size:9px;">${esc(s.type)}</span> ${orig}${encoded}</div>`;
+  }).join('');
+
+  return previewHtml + `<div style="margin-top:4px;padding:4px 6px;background:#fff5f5;border-left:2px solid #c0392b;border-radius:2px;">${xssHtml}</div>`;
+}
+
+function renderSourceValues(sources) {
+  if (!sources || sources.length === 0) return '<span class="cell-empty">—</span>';
+  const items = sources.map(s => {
+    const val = String(s.value || '').slice(0, 40);
+    const full = `${s.type}: ${s.value}`;
+    return `<div style="font-size:10px;font-family:monospace;white-space:nowrap;" title="${esc(full)}"><span style="color:#666;">${esc(s.type)}:</span> ${esc(val)}${s.value.length > 40 ? '…' : ''}</div>`;
+  });
+  return `<div style="max-width:260px;overflow-x:auto;">${items.join('')}</div>`;
+}
+
+async function addSigJs(sig, btn) {
+  btn.disabled = true;
+  btn.textContent = '…';
+  try {
+    const resp = await fetch('/api/js-signatures', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ signature: sig, note: 'added from report viewer' }),
+    });
+    if (resp.ok) {
+      jsAllowlist.add(sig);
+      markAllowed(btn.closest('div'), sig, 'js');
+    } else {
+      btn.textContent = 'err';
+    }
+  } catch { btn.textContent = 'err'; }
+}
+
+async function addSigUrl(url, btn) {
+  btn.disabled = true;
+  btn.textContent = '…';
+  try {
+    const resp = await fetch('/api/url-signatures', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, note: 'added from report viewer' }),
+    });
+    if (resp.ok) {
+      urlAllowlist.add(url);
+      markAllowed(btn.closest('div'), url, 'url');
+    } else {
+      btn.textContent = 'err';
+    }
+  } catch { btn.textContent = 'err'; }
+}
+
+function markAllowed(container, _val, _type) {
+  if (!container) return;
+  const btn = container.querySelector('button');
+  if (btn) {
+    btn.textContent = 'listed';
+    btn.disabled = true;
+    btn.style.background = '#27ae60';
+    btn.style.opacity = '0.7';
+  }
+}
+
+function renderJsSigCell(jsSig) {
+  if (!jsSig) return '<span class="cell-empty">—</span>';
+  const parts = [];
+  for (const sig of [].concat(jsSig).filter(Boolean)) {
+    const short = String(sig).slice(0, 8);
+    const listed = jsAllowlist.has(sig);
+    const btn = listed
+      ? `<button class="sig-btn sig-btn-js" disabled style="background:#27ae60;opacity:0.7;">listed</button>`
+      : `<button class="sig-btn sig-btn-js" data-sig="${esc(sig)}" onclick="addSigJs(this.dataset.sig,this)">+JS</button>`;
+    parts.push(
+      `<div style="font-size:10px;font-family:monospace;white-space:nowrap;">` +
+      `<span title="${esc(sig)}" style="color:#7d3c98;">${esc(short)}…</span>${btn}` +
+      `</div>`
+    );
+  }
+  return parts.length ? `<div style="max-width:160px;">${parts.join('')}</div>` : '<span style="color:#ccc;">—</span>';
+}
+
+function renderUrlSigCell(urlSig) {
+  if (!urlSig) return '<span class="cell-empty">—</span>';
+  const parts = [];
+  for (const url of [].concat(urlSig).filter(Boolean)) {
+    let display;
+    try { display = new URL(url).hostname + '/…'; } catch { display = String(url).slice(0, 24); }
+    const listed = urlAllowlist.has(url);
+    const btn = listed
+      ? `<button class="sig-btn sig-btn-url" disabled style="background:#27ae60;opacity:0.7;">listed</button>`
+      : `<button class="sig-btn sig-btn-url" data-sig="${esc(url)}" onclick="addSigUrl(this.dataset.sig,this)">+URL</button>`;
+    parts.push(
+      `<div style="font-size:10px;font-family:monospace;white-space:nowrap;">` +
+      `<span title="${esc(url)}" style="color:#1a5276;">${esc(display)}</span>${btn}` +
+      `</div>`
+    );
+  }
+  return parts.length ? `<div style="max-width:160px;">${parts.join('')}</div>` : '<span style="color:#ccc;">—</span>';
+}
+
+async function loadClassifySinkDetail(sinkKey) {
+  try {
+    const encoded = encodeURIComponent(sinkKey);
+    const resp = await fetch(`/tt-report/by-sink/${encoded}`);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+
+    const rows = (data || []).map(r => {
+      const reclassV = esc(r.reclassified_verdict || '—');
+      return [
+        '<tr>',
+        `<td class="cell-id">${esc(r.id)}</td>`,
+        `<td>${renderPageUrl(r.page_url)}</td>`,
+        `<td>${renderPreviewWithXss(r.value_preview, r.xss_source_values)}</td>`,
+        `<td>${renderSourceValues(r.source_values)}</td>`,
+        `<td><span class="badge badge-${reclassV}" style="font-size:10px;">${reclassV}</span></td>`,
+        `<td>${renderVerdictReasons(r.verdict_reasons)}</td>`,
+        `<td>${renderJsSigCell(r.js_signature)}</td>`,
+        `<td>${renderUrlSigCell(r.url_signature)}</td>`,
+        `<td>${esc(r.count || 1)}</td>`,
+        '</tr>',
+      ].join('');
+    });
+
+    document.getElementById('rows-classify-detail').innerHTML = rows.length
+      ? rows.join('')
+      : '<tr><td colspan="9" style="text-align:center;color:#999;">No reports</td></tr>';
+  } catch (e) {
+    document.getElementById('rows-classify-detail').innerHTML =
+      `<tr><td colspan="9"><span class="error">Error: ${esc(e.message)}</span></td></tr>`;
+  }
+}
+
+async function loadViolationSinkDetail(sinkKey) {
+  try {
+    const isNullSink = sinkKey === null || sinkKey === 'null';
+    const url = isNullSink
+      ? '/violation-reports/unknown-sink'
+      : `/violation-reports/by-sink/${encodeURIComponent(sinkKey)}`;
+
+    const resp = await fetch(url);
+    if (!resp.ok) {
+      throw new Error('HTTP ' + resp.status);
+    }
+    const data = await resp.json();
+
+    const rows = (data || []).map(r => {
+      const reclassV = esc(r.reclassified_verdict || '—');
+      return [
+        '<tr>',
+        `<td class="cell-id">${esc(r.id)}</td>`,
+        `<td>${renderPageUrl(r.page_url)}</td>`,
+        `<td>${renderPreviewWithXss(r.value_preview, r.xss_source_values)}</td>`,
+        `<td>${esc(r.sanitized_value_preview || '-')}</td>`,
+        `<td>${renderSourceValues(r.source_values)}</td>`,
+        `<td><span class="badge badge-${reclassV}" style="font-size:10px;">${reclassV}</span></td>`,
+        `<td>${renderVerdictReasons(r.verdict_reasons)}</td>`,
+        `<td>${renderJsSigCell(r.js_signature)}</td>`,
+        `<td>${renderUrlSigCell(r.url_signature)}</td>`,
+        `<td>${esc(r.count || 1)}</td>`,
+        '</tr>',
+      ].join('');
+    });
+
+    document.getElementById('rows-violation-detail').innerHTML = rows.length
+      ? rows.join('')
+      : '<tr><td colspan="10" style="text-align:center;color:#999;">No reports</td></tr>';
+  } catch (e) {
+    document.getElementById('rows-violation-detail').innerHTML =
+      `<tr><td colspan="10"><span class="error">Error: ${esc(e.message)}</span></td></tr>`;
+  }
+}
+
+async function loadViolationCallerLocationDetail(callerLocation) {
+  try {
+    const encoded = encodeURIComponent(callerLocation || '(unknown)');
+    const resp = await fetch(`/violation-reports/unknown-sink/${encoded}`);
+    if (!resp.ok) {
+      throw new Error('HTTP ' + resp.status);
+    }
+    const data = await resp.json();
+
+    const rows = (data || []).map(r => {
+      const reclassV = esc(r.reclassified_verdict || '—');
+      return [
+        '<tr>',
+        `<td class="cell-id">${esc(r.id)}</td>`,
+        `<td>${renderPageUrl(r.page_url)}</td>`,
+        `<td>${renderPreviewWithXss(r.value_preview, r.xss_source_values)}</td>`,
+        `<td>${esc(r.sanitized_value_preview || '-')}</td>`,
+        `<td>${renderSourceValues(r.source_values)}</td>`,
+        `<td><span class="badge badge-${reclassV}" style="font-size:10px;">${reclassV}</span></td>`,
+        `<td>${renderVerdictReasons(r.verdict_reasons)}</td>`,
+        `<td>${renderJsSigCell(r.js_signature)}</td>`,
+        `<td>${renderUrlSigCell(r.url_signature)}</td>`,
+        `<td>${esc(r.count || 1)}</td>`,
+        '</tr>',
+      ].join('');
+    });
+
+    document.getElementById('rows-violation-detail').innerHTML = rows.length
+      ? rows.join('')
+      : '<tr><td colspan="10" style="text-align:center;color:#999;">No reports</td></tr>';
+  } catch (e) {
+    document.getElementById('rows-violation-detail').innerHTML =
+      `<tr><td colspan="10"><span class="error">Error: ${esc(e.message)}</span></td></tr>`;
+  }
+}
+
+function onClassifySinkRowClick(sinkKey, trEl) {
+  if (selectedClassifySinkKey === sinkKey) {
+    selectedClassifySinkKey = null;
+    trEl.classList.remove('selected');
+    document.getElementById('classify-detail').style.display = 'none';
+    return;
+  }
+  document.querySelectorAll('#rows-classify tr.selected').forEach(el => el.classList.remove('selected'));
+  selectedClassifySinkKey = sinkKey;
+  trEl.classList.add('selected');
+  document.getElementById('classify-detail-header').textContent = sinkKey;
+  document.getElementById('classify-detail').style.display = 'block';
+  document.getElementById('rows-classify-detail').innerHTML = '<tr><td colspan="8" style="color:#999;text-align:center;">Loading...</td></tr>';
+  loadClassifySinkDetail(sinkKey);
+}
+
+function onViolationSinkRowClick(sinkKey, trEl) {
+  if (selectedViolationSinkKey === sinkKey) {
+    selectedViolationSinkKey = null;
+    trEl.classList.remove('selected');
+    document.getElementById('violation-detail').style.display = 'none';
+    return;
+  }
+  document.querySelectorAll('#rows-violation tr.selected').forEach(el => el.classList.remove('selected'));
+  selectedViolationSinkKey = sinkKey;
+  trEl.classList.add('selected');
+  const isNullSink = sinkKey === null || sinkKey === 'null';
+  document.getElementById('violation-detail-header').textContent = isNullSink ? '(Unknown Sink)' : sinkKey;
+  document.getElementById('violation-detail').style.display = 'block';
+  document.getElementById('rows-violation-detail').innerHTML = '<tr><td colspan="10" style="color:#999;text-align:center;">Loading...</td></tr>';
+  loadViolationSinkDetail(sinkKey);
+}
+
+function onViolationCallerLocationClick(callerLocation, trEl) {
+  if (selectedViolationSinkKey === callerLocation) {
+    selectedViolationSinkKey = null;
+    trEl.classList.remove('selected');
+    document.getElementById('violation-detail').style.display = 'none';
+    return;
+  }
+  document.querySelectorAll('#rows-violation tr.selected').forEach(el => el.classList.remove('selected'));
+  selectedViolationSinkKey = callerLocation;
+  trEl.classList.add('selected');
+  document.getElementById('violation-detail-header').textContent = callerLocation || '(unknown)';
+  document.getElementById('violation-detail').style.display = 'block';
+  document.getElementById('rows-violation-detail').innerHTML = '<tr><td colspan="10" style="color:#999;text-align:center;">Loading...</td></tr>';
+  loadViolationCallerLocationDetail(callerLocation);
+}
+
+async function loadClassifyReports() {
+  try {
+    const resp = await fetch('/classify-reports/by-sink');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+
+    const rows = (data || []).map(r => {
+      const verdictList = r.verdicts ? r.verdicts.split(',').map(v => `<span class="badge badge-${esc(v.trim())}">${esc(v.trim())}</span>`).join(' ') : '—';
+      const sinkPos = r.sink_key ? r.sink_key.split(':').slice(0, -1).join(':') : '—';
+      return [
+        `<tr class="clickable" data-sink-key="${esc(r.sink_key)}" onclick="onClassifySinkRowClick(this.dataset.sinkKey, this)">`,
+        `<td class="cell-id">${r.sink_id != null ? esc(r.sink_id) : '—'}</td>`,
+        `<td><span class="sink-key" title="${esc(r.sink_key)}">${esc(sinkPos)}</span></td>`,
+        `<td>${esc(r.tt_type || '—')}</td>`,
+        `<td>${esc(r.sink_kind || '—')}</td>`,
+        `<td>${renderSinkVerdictCell(r)}</td>`,
+        `<td>${esc(r.unique_patterns || 0)}</td>`,
+        `<td>${esc(r.total_count || 0)}</td>`,
+        `<td>${esc(new Date(r.last_seen).toLocaleTimeString())}</td>`,
+        `<td style="white-space:nowrap;">${renderOracleVerdict(r.oracle_verdict, r.oracle_confidence, r.oracle_score, r.oracle_mixed)} <button class="oracle-upd-btn" onclick='openOracleModal(${JSON.stringify(r.sink_key)},${JSON.stringify(r.oracle_verdict||"")},event)' style="font-size:10px;padding:2px 6px;cursor:pointer;border:1px solid #ccc;background:#f5f5f5;border-radius:3px;">Update</button></td>`,
+        '</tr>',
+      ].join('');
+    });
+
+    document.getElementById('rows-classify').innerHTML = rows.length
+      ? rows.join('')
+      : '<tr><td colspan="10" style="text-align:center;color:#999;">No sinks</td></tr>';
+  } catch (e) {
+    document.getElementById('rows-classify').innerHTML =
+      `<tr><td colspan="10"><span class="error">Error: ${esc(e.message)}</span></td></tr>`;
+  }
+}
+
+async function loadViolationReports() {
+  try {
+    const [resp1, resp2] = await Promise.all([
+      fetch('/violation-reports/by-sink'),
+      fetch('/violation-reports/unknown-sink'),
+    ]);
+
+    if (!resp1.ok) throw new Error('HTTP ' + resp1.status);
+    const data = await resp1.json();
+    const unknownData = resp2.ok ? await resp2.json() : [];
+    const rows = (data || [])
+      .filter(r => r.sink_key && r.sink_key !== 'null')
+      .map(r => {
+      const verdictList = r.verdicts ? r.verdicts.map(v => `<span class="badge badge-${esc(v)}">${esc(v)}</span>`).join(' ') : '—';
+      const sinkPos = r.sink_key.split(':').slice(0, -1).join(':');
+      return [
+        `<tr class="clickable" data-sink-key="${esc(r.sink_key)}" onclick="onViolationSinkRowClick(this.dataset.sinkKey, this)">`,
+        `<td class="cell-id">${r.sink_id != null ? esc(r.sink_id) : '—'}</td>`,
+        `<td><span class="sink-key" title="${esc(r.sink_key)}">${esc(sinkPos)}</span></td>`,
+        `<td>${esc(r.tt_type || '—')}</td>`,
+        `<td>${esc(r.sink_kind || '—')}</td>`,
+        `<td>${renderSinkVerdictCell(r)}</td>`,
+        `<td>${esc(r.unique_patterns || 0)}</td>`,
+        `<td>${esc(r.total_count || 0)}</td>`,
+        `<td>${esc(new Date(r.last_seen).toLocaleTimeString())}</td>`,
+        '</tr>',
+      ].join('');
+    });
+    const unknownRows = (unknownData || []).map(r => {
+      const verdictList = r.verdicts ? r.verdicts.map(v => `<span class="badge badge-${esc(v)}">${esc(v)}</span>`).join(' ') : '—';
+      const callerLoc = r.caller_location ? r.caller_location : '(unknown)';
+      const xssIndicator = r.has_xss ? ' ⚠ XSS' : '';
+      return [
+        `<tr class="clickable" style="background-color:#fff9e6;" data-caller-location="${esc(callerLoc)}" onclick="onViolationCallerLocationClick(this.dataset.callerLocation, this)">`,
+        `<td class="cell-id">—</td>`,
+        `<td><span class="sink-key" title="${esc(callerLoc)}" style="color:#ff8c00;">${esc(callerLoc)}</span>${xssIndicator}</td>`,
+        `<td>${esc(r.tt_type || '—')}</td>`,
+        `<td>—</td>`,
+        `<td>—</td>`,
+        `<td>${esc(r.unique_patterns || 0)}</td>`,
+        `<td>${esc(r.total_count || 0)}</td>`,
+        `<td>${esc(new Date(r.last_seen).toLocaleTimeString())}</td>`,
+        '</tr>',
+      ].join('');
+    });
+
+    const allRows = rows.concat(unknownRows);
+    document.getElementById('rows-violation').innerHTML = allRows.length
+      ? allRows.join('')
+      : '<tr><td colspan="9" style="text-align:center;color:#999;">No sinks</td></tr>';
+  } catch (e) {
+    document.getElementById('rows-violation').innerHTML =
+      `<tr><td colspan="9"><span class="error">Error: ${esc(e.message)}</span></td></tr>`;
+  }
+}
+
+async function loadStats() {
+  try {
+    const resp = await fetch('/tt-report/stats');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    const html = [];
+
+    html.push(`<div class="stat-box"><div class="stat-label">Classify</div><div class="stat-value">${data.classify?.total || 0}</div></div>`);
+    (data.classify?.byVerdict || []).forEach(row => {
+      const label = esc(row.reclassified_verdict || '-');
+      html.push(`<div class="stat-box"><div class="stat-label">${label}</div><div class="stat-value">${row.count || 0}</div></div>`);
+    });
+
+    html.push(`<div class="stat-box"><div class="stat-label">Violation</div><div class="stat-value">${data.violation?.total || 0}</div></div>`);
+    (data.violation?.byVerdict || []).forEach(row => {
+      const label = esc(row.reclassified_verdict || '-');
+      html.push(`<div class="stat-box"><div class="stat-label">${label}</div><div class="stat-value">${row.count || 0}</div></div>`);
+    });
+
+    document.getElementById('stats').innerHTML = html.join('');
+  } catch (e) {
+    console.error('Failed to load stats:', e);
+  }
+}
+
+function renderSinkCell(r) {
+  return esc(r.sink_kind || r.location || '—');
+}
+
+function renderSinkVerdictCell(r) {
+  const v = r.sink_verdict || r.static_verdict || 'NEW';
+  return `<span class="badge badge-${esc(v)}" style="font-size:10px;">${esc(v)}</span>`;
+}
+
+function renderPageUrl(url) {
+  if (!url) return '<span class="cell-empty">—</span>';
+  try {
+    const pathname = esc(new URL(url).pathname);
+    return `<a href="${esc(url)}" target="_blank" style="font-size:11px;color:#0066cc;font-family:monospace;" title="${esc(url)}">${pathname}</a>`;
+  } catch {
+    return esc(url);
+  }
+}
+
+async function load() {
+  try {
+    const resp = await fetch('/tt-report/list');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+
+    const rows = (data.rows || []).map(r => {
+      const v   = esc(r.reclassified_verdict || '—');
+      const isViolation = r.source === 'violation';
+      const trStyle = isViolation ? ' style="background:#fff5f5;"' : '';
+      return [
+        `<tr${trStyle}>`,
+        `<td class="cell-id">${esc(r.id)}</td>`,
+        `<td style="font-size:11px;">${esc(r.tt_type || '—')}</td>`,
+        `<td style="font-size:11px;">${renderSinkCell(r)}</td>`,
+        `<td><div class="cell-preview">${esc(r.value_preview || '')}</div></td>`,
+        `<td>${renderPageUrl(r.page_url)}</td>`,
+        `<td>${renderSinkVerdictCell(r)}</td>`,
+        `<td><span class="badge badge-${v === '—' ? 'NEW' : v}">${v}</span></td>`,
+        `<td>${renderVerdictReasons(r.verdict_reasons)}</td>`,
+        `<td>${renderJsSigCell(r.js_signature)}</td>`,
+        `<td>${renderUrlSigCell(r.url_signature)}</td>`,
+        `<td>${esc(r.count || 1)}</td>`,
+        '</tr>',
+      ].join('');
+    });
+
+    document.getElementById('rows').innerHTML = rows.length
+      ? rows.join('')
+      : '<tr><td colspan="13" style="text-align:center;color:#999;">No reports</td></tr>';
+  } catch (e) {
+    document.getElementById('rows').innerHTML =
+      `<tr><td colspan="12"><span class="error">Error: ${esc(e.message)}</span></td></tr>`;
+  }
+}
+let _oracleSinkKey = null;
+
+async function openOracleModal(sinkKey, curVerdict, event) {
+  event.stopPropagation();
+  _oracleSinkKey = sinkKey;
+  document.getElementById('oracle-modal-key').textContent = sinkKey;
+  document.getElementById('oracle-modal').style.display = 'flex';
+  const sel = document.getElementById('oracle-verdict-sel');
+  sel.value = curVerdict || 'TYPE4';
+  try {
+    const det = await fetch(`/api/sink-details/${encodeURIComponent(sinkKey)}`).then(r => r.json());
+    document.getElementById('oracle-cur-code').textContent =
+      (det.patch_count > 0 ? det.display_suggestion : det.original_snippet) || '(no code)';
+  } catch (e) {
+    document.getElementById('oracle-cur-code').textContent = `(error loading: ${e.message})`;
+  }
+  await _loadOraclePreview(sinkKey, sel.value);
+}
+
+async function _loadOraclePreview(sinkKey, verdict) {
+  const pre = document.getElementById('oracle-preview-code');
+  pre.textContent = 'Loading…';
+  try {
+    const res = await fetch(`/api/oracle-patch-preview/${encodeURIComponent(sinkKey)}/${encodeURIComponent(verdict)}`);
+    const data = res.ok ? await res.json() : null;
+    pre.textContent = data?.display_suggestion || '(no preview)';
+  } catch (e) {
+    pre.textContent = `(error: ${e.message})`;
+  }
+}
+
+function closeOracleModal() {
+  document.getElementById('oracle-modal').style.display = 'none';
+  _oracleSinkKey = null;
+}
+
+async function submitOracleUpdate() {
+  const sinkKey = _oracleSinkKey;
+  const verdict = document.getElementById('oracle-verdict-sel').value;
+  const btn = document.getElementById('oracle-update-btn');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+  try {
+    const res = await fetch('/api/oracle-verdicts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sinkKey, oracle_verdict: verdict, patch_verdict: verdict, is_patch_target: 1 }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    closeOracleModal();
+    btn.disabled = false;
+    btn.textContent = 'Update';
+    loadClassifyReports();
+  } catch (e) {
+    alert(`Error: ${e.message}`);
+    btn.disabled = false;
+    btn.textContent = 'Update';
+  }
+}
+document.getElementById('oracle-verdict-sel').addEventListener('change', function() {
+  if (_oracleSinkKey) _loadOraclePreview(_oracleSinkKey, this.value);
+});
+
+loadAllowlists().then(() => {
+  loadStats();
+  loadClassifyReports();
+});
+setInterval(async () => {
+  await loadAllowlists();
+  loadStats();
+  if (currentView === 'classify') loadClassifyReports();
+  else if (currentView === 'violation') loadViolationReports();
+  else load();
+}, 30000);
+</script>
+</body>
+</html>
